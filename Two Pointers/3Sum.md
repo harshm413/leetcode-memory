@@ -1,19 +1,53 @@
-# 🔺 _The Three-Heart Pact: The 3Sum Saga_
+## ⚔️📜 _The Triad of Perfect Balance: The 3Sum Saga_
 
-> _"When three wanderers meet, their fortunes may cancel —
-> one’s burden balanced by the other's gift and the third’s secret.
-> Seek those triads whose sum is zero, and bind them as a covenant."_
+> \*"In the Realm of Numbers,
+> three warriors were needed —
+> not two, not four —
+> exactly **three** whose combined strength
+> would balance the world to **zero**.
+>
+> The Oracle was commanded:
+>
+> \*\*‘Find all unique triplets
+> whose sum is zero.
+>
+> No duplicate alliances.
+> No repeated destinies.’\*\*
+>
+> Chaos lurked in repetition,
+> but order could tame it.
+>
+> So the Oracle first **sorted the realm**,
+> then fixed one warrior at a time,
+> letting the other two search for harmony."\*
 
 ---
 
-The market was full of numbers — some heavy with debt, some light with coin, some balanced in spirit. The Council sought triads of travelers that, when they pooled their burdens, yielded perfect balance: a sum of **zero**.
-The Keeper would not simply try every trio; instead she would first lay the numbers in order, then let two scouts sweep from both sides to find partners for each chosen leader, while carefully avoiding repeated covenants.
+This is the saga of **3Sum**.
 
-Thus began the quest of **3Sum**.
+You are given an integer array `nums`.
+Your task:
+
+-   Find **all unique triplets** `[a, b, c]`
+-   Such that `a + b + c = 0`
+-   The solution set must not contain duplicates
 
 ---
 
-### 📜 The Gathered Scrolls
+## 🧠 The Oracle’s Core Insight — Fix One, Balance Two
+
+The Oracle followed a powerful strategy:
+
+1. **Sort** the array
+2. Fix one element `i`
+3. Use **two pointers** to find pairs that sum to `-nums[i]`
+4. Skip duplicates to avoid repeated triplets
+
+Sorting transformed chaos into direction.
+
+---
+
+### 📜 The Scroll of Ordered Destiny
 
 ```cpp
 #include <iostream>
@@ -22,51 +56,84 @@ Thus began the quest of **3Sum**.
 using namespace std;
 ```
 
-The scribes brought order (`sort`) to the line and readied a ledger (`vector<vector<int>>`) to record unique triplets.
-
 ---
 
-### 🔍 The Keeper’s Rite
+## ⚔️ The Oracle’s Three-Warrior Ritual
 
 ```cpp
 vector<vector<int>> threeSum(vector<int>& nums) {
     vector<vector<int>> res;
     sort(nums.begin(), nums.end());
-    int n = nums.size();
 ```
 
-The Keeper laid out the numbers in ascending order. With the line sorted, duplicates cluster and two scouts can walk inward to find perfect partners faster than wandering randomly.
+The realm was ordered.
+Duplicate destinies could now be avoided.
 
 ---
 
-### 🧭 Choose a Leader, Send Two Scouts
+### 🧭 Fix the First Warrior
 
 ```cpp
-    for (int i = 0; i < n; ++i) {
-        if (i > 0 && nums[i] == nums[i-1]) continue; // skip same leader
-        int target = -nums[i];
-        int l = i + 1, r = n - 1;
+    for (int i = 0; i < nums.size(); i++) {
+        if (i > 0 && nums[i] == nums[i - 1]) continue;
 ```
 
-For each position `i`, the Keeper picks a leader `nums[i]`. If this leader is the same as the previous one, she skips him — to avoid recording the same covenant twice. The scouts `l` and `r` start immediately to the right and at the end, seeking two numbers that sum to `target = -nums[i]`.
+The Oracle fixed one warrior
+and skipped identical leaders to prevent repetition.
 
 ---
 
-### ⚔️ The Two-Scout Sweep
+### 🔍 Seek Balance with Two Pointers
 
 ```cpp
-        while (l < r) {
-            int sum = nums[l] + nums[r];
-            if (sum == target) {
-                res.push_back({nums[i], nums[l], nums[r]});
-                // advance both scouts and skip duplicates
-                while (l < r && nums[l] == nums[l+1]) ++l;
-                while (l < r && nums[r] == nums[r-1]) --r;
-                ++l; --r;
-            } else if (sum < target) {
-                ++l; // need bigger sum: move left scout right
-            } else {
-                --r; // need smaller sum: move right scout left
+        int left = i + 1;
+        int right = nums.size() - 1;
+```
+
+Two seekers searched the remaining realm.
+
+---
+
+### ⚖️ Walk Until Balance Is Found
+
+```cpp
+        while (left < right) {
+            int sum = nums[i] + nums[left] + nums[right];
+```
+
+The strength of the triad was measured.
+
+---
+
+### 🏹 Adjust the Seekers
+
+```cpp
+            if (sum == 0) {
+                res.push_back({nums[i], nums[left], nums[right]});
+```
+
+A perfect triad was found and recorded.
+
+---
+
+```cpp
+                while (left < right && nums[left] == nums[left + 1]) left++;
+                while (left < right && nums[right] == nums[right - 1]) right--;
+                left++;
+                right--;
+```
+
+Duplicates were skipped,
+and the seekers moved inward.
+
+---
+
+```cpp
+            else if (sum < 0) {
+                left++;
+            }
+            else {
+                right--;
             }
         }
     }
@@ -74,38 +141,50 @@ For each position `i`, the Keeper picks a leader `nums[i]`. If this leader is th
 }
 ```
 
-If the scouts find numbers whose sum equals the leader’s `target`, a covenant `{nums[i], nums[l], nums[r]}` is recorded. Then both scouts advance — but they skip over any duplicates so the same trio is never logged twice. If the pair is too small, the left scout advances to grow the sum; if too large, the right scout retreats to shrink it.
+If the sum was too small or too large,
+the seekers adjusted accordingly.
 
 ---
 
-### 🎺 The Trial of Many Numbers
+### 🎺 The Trial of the Balanced Triads
 
 ```cpp
 int main() {
     vector<int> nums = {-1, 0, 1, 2, -1, -4};
     vector<vector<int>> ans = threeSum(nums);
-    for (auto &trip : ans) {
-        cout << "[";
-        for (int i = 0; i < trip.size(); ++i) {
-            if (i) cout << ", ";
-            cout << trip[i];
-        }
-        cout << "]\n";
+
+    for (auto& triplet : ans) {
+        for (int x : triplet) cout << x << " ";
+        cout << endl;
     }
     return 0;
 }
 ```
 
-From the crowd `{-1, 0, 1, 2, -1, -4}` the Keeper finds the covenants that balance to zero. The recorded triads, unique and ordered by the Keeper’s sorting, reveal which three hearts together form a perfect pact.
+The Oracle revealed the balanced triads:
+
+-   `[-1, -1, 2]`
+-   `[-1, 0, 1]`
+
+No duplicates.
+Perfect balance.
 
 ---
 
-### 🧠 Memory of the Pact
+### 🧠 Memory of the Triad Law
 
--   **Sort first** — makes duplicates adjacent and enables two-pointer scanning.
--   **Skip duplicate leaders (`i`)** — avoid repeating the same triplet.
--   **Two pointers `l` and `r`** — find pairs summing to `-nums[i]` in linear time per leader.
--   **Skip duplicate `l` / `r` values after a hit** — ensure uniqueness of recorded triplets.
--   **Overall complexity:** O(n²) time, O(log n) to O(n) space depending on sort implementation and output size.
+-   Sort the array first
+-   Fix one element at a time
+-   Use two pointers to find remaining pair
+-   Skip duplicates at all levels
+-   Ensure unique triplets only
+-   **Time:** O(n²)
+-   **Space:** O(1) (excluding output)
 
-Thus is remembered the saga of **3Sum**: choose a leader, send two scouts, and bind every unique trio whose burdens cancel to zero into an everlasting pact.
+Thus is remembered the saga of **3Sum**,
+where the Oracle transforms chaos into order,
+fixes one destiny,
+and sends two seekers to find balance —
+revealing every unique triad
+whose combined strength
+restores harmony to zero. ⚔️✨
