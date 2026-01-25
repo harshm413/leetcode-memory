@@ -1,25 +1,58 @@
-## 💰 _The Merchant’s Fortune: The Best Time to Buy and Sell Stock Saga_
+## 💰⚔️ _The Single Trade of Destiny: The Best Time to Buy and Sell Stock Saga_
 
-> _"Riches are not made by every trade,
-> but by patience: buying at the valley,
-> selling at the crest,
-> and never forgetting the highest profit the tides allow."_
+> \*"In the Market of Passing Days,
+> prices rose and fell like tides.
+>
+> The Oracle was given a strict decree:
+>
+> \*\*‘You may buy once.
+> You may sell once.
+>
+> Choose wisely,
+> for one poor choice ruins all profit.’\*\*
+>
+> The Oracle understood this was not a tale
+> of many trades and endless gains,
+> but of **patience** and **perfect timing** —
+>
+> to buy at the deepest valley
+> and sell at the highest peak that follows."\*
 
 ---
 
-In the bustling marketplace, the price of gold shifted each dawn. Some days it rose, some days it sank. Merchants longed to know: if they could buy once and sell once, what was the greatest profit they could earn?
+This is the saga of **Best Time to Buy and Sell Stock** (Single Transaction).
 
-Many tried brute force — testing every pair of days — but the Wise Merchant knew better:
+You are given an array `prices`,
+where `prices[i]` is the stock price on day `i`.
 
-> _“Keep an eye always on the lowest valley,
-> and measure every new peak against it.
-> Thus shall you find the richest trade.”_
+Your task:
 
-Thus began the saga of the **Best Time to Buy and Sell Stock**.
+-   Choose **one day to buy**
+-   Choose **a later day to sell**
+-   Maximize profit
+-   If no profit is possible, return `0`
 
 ---
 
-### 📜 The Merchant’s Ledger
+## 🧠 The Oracle’s Core Insight — Valley Before Peak
+
+The Oracle discovered a timeless rule:
+
+> **For every day,
+> the best profit is made by selling today
+> after buying at the lowest price seen so far.**
+
+So she carried with her:
+
+-   the **lowest price so far**
+-   the **best profit so far**
+
+No future knowledge required.
+Just a single, disciplined walk through time.
+
+---
+
+### 📜 The Scroll of Market Days
 
 ```cpp
 #include <iostream>
@@ -27,66 +60,104 @@ Thus began the saga of the **Best Time to Buy and Sell Stock**.
 using namespace std;
 ```
 
-The scribes recorded each day’s price on parchment (`vector<int>`). The Merchant carried two numbers: the lowest price seen so far (the valley) and the greatest profit ever gained (the fortune).
-
 ---
 
-### 🏦 The Ritual of Watching Prices
+## 🔮 The Oracle’s One-Pass Trading Ritual
+
+_Track the valley, test the peak_
 
 ```cpp
 int maxProfit(vector<int>& prices) {
-    int minPrice = INT_MAX;
+    int minPrice = prices[0];
     int maxProfit = 0;
 ```
 
-The Merchant began with no knowledge — the valley set impossibly high (`INT_MAX`) and the fortune at zero.
+The Oracle began by assuming
+the first day as the earliest valley.
 
 ---
 
+### 🧭 Walk the Market Day by Day
+
 ```cpp
-    for (int p : prices) {
-        if (p < minPrice) {
-            minPrice = p; // found a deeper valley
-        } else if (p - minPrice > maxProfit) {
-            maxProfit = p - minPrice; // found a higher profit peak
-        }
+    for (int i = 1; i < prices.size(); i++) {
+```
+
+Each day revealed a new price.
+
+---
+
+### 🏞️ Update the Deepest Valley
+
+```cpp
+        minPrice = min(minPrice, prices[i]);
+```
+
+If a new lower price appeared,
+the Oracle marked it as a better buying opportunity.
+
+---
+
+### 🏔️ Test the Profit of Selling Today
+
+```cpp
+        maxProfit = max(maxProfit, prices[i] - minPrice);
     }
+```
+
+Selling today after buying at the best valley
+might yield a new maximum profit.
+
+The Oracle recorded the best outcome.
+
+---
+
+### 🏁 Return the Best Possible Gain
+
+```cpp
     return maxProfit;
 }
 ```
 
-Day after day, the Merchant watched:
-
--   If today’s price was lower than all before, it became the new **valley** — the best buying price so far.
--   Otherwise, the Merchant asked: _“What if I had bought at the valley and sold today?”_ If the profit surpassed his fortune, he recorded it.
-
-Thus, with one pass of the market, the greatest profit emerged.
+If no rise ever followed a valley,
+profit remained zero.
 
 ---
 
-### 🎺 The Trial of Prices
+### 🎺 The Trial of the Market
 
 ```cpp
 int main() {
-    vector<int> prices = {7,1,5,3,6,4};
-    cout << maxProfit(prices) << endl; // expected: 5 (buy at 1, sell at 6)
+    vector<int> prices = {7, 1, 5, 3, 6, 4};
+    cout << maxProfit(prices) << endl; // expected: 5
     return 0;
 }
 ```
 
-In this market, the valley was 1, and the crest after it was 6. The Merchant bought low, sold high, and earned a fortune of 5.
+The Oracle chose:
+
+-   Buy at **1**
+-   Sell at **6**
+
+Profit = **5**
+
+One trade.
+Perfect timing.
 
 ---
 
-### 🧠 Memory of the Fortune
+### 🧠 Memory of the Single-Trade Law
 
--   **Track minPrice** → the valley, best buying point so far.
--   **Track maxProfit** → the fortune, best trade profit so far.
--   **Update on each day:**
+-   Only one buy and one sell allowed
+-   Buy must occur before sell
+-   Track minimum price so far
+-   Maximize `price - minPrice`
+-   **Time:** O(n)
+-   **Space:** O(1)
 
-    -   If `p < minPrice`, record new valley.
-    -   Else, check `p - minPrice` and update fortune if higher.
-
--   **Time:** O(n), **Space:** O(1).
-
-Thus is remembered the saga of the **Best Time to Buy and Sell Stock**, where fortunes are won not by rushing every trade, but by waiting for the valley and selling at the crest. 💰📈
+Thus is remembered the saga of
+**Best Time to Buy and Sell Stock**,
+where the Oracle does not chase every rise,
+but waits patiently for the deepest valley —
+and strikes once, at the perfect peak,
+to claim the greatest possible gain. 💰✨

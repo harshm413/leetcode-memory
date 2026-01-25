@@ -1,105 +1,157 @@
-## 🔐 _The Unbroken Thread: The Longest Substring Without Repeating Characters Saga_
+## 🌈⚔️ _The Unbroken Path of Symbols: The Longest Substring Without Repeating Characters Saga_
 
-> _"In the loom of letters, some threads never knot.
-> We seek the longest stretch where each color is unique —
-> a ribbon unspoiled by repeating threads."_
+> \*"In the Scroll of Symbols,
+> characters marched one after another —
+> some loyal, some treacherous,
+> some returning too soon.
+>
+> The Oracle was commanded:
+>
+> **‘Find the longest continuous stretch
+> where no symbol repeats.’**
+>
+> A symbol could not be trusted twice.
+>
+> The Oracle could not restart the journey each time —
+> that would be too slow.
+>
+> Instead, she carried a **moving window of trust**,
+> expanding when harmony held,
+> and shrinking the moment betrayal appeared."\*
 
 ---
 
-A weaver sat before a spool of characters, pulling thread to form the longest ribbon where no color repeated. If a color recurred, the weaver slid the left hand forward to remove the earlier instance and continued — always keeping a window of unique colors, measuring its length, and remembering the largest ribbon seen so far.
+This is the saga of **Longest Substring Without Repeating Characters**.
 
-Thus began the ritual of the **Longest Substring Without Repeating Characters**.
+You are given a string `s`.
+Your task:
+
+-   Find the **length of the longest substring**
+-   With **all unique characters**
 
 ---
 
-### 📜 The Loom and the Shuttle
+## 🧠 The Oracle’s Core Insight — Sliding Window of Trust
+
+The Oracle realized:
+
+-   A substring with all unique characters
+    must lie within a window with **no duplicates**
+-   When a duplicate appears,
+    the window must move forward — not restart
+
+So she used:
+
+-   Two pointers (`left`, `right`)
+-   A structure to remember **last seen positions**
+
+---
+
+### 📜 The Scroll of Passing Symbols
 
 ```cpp
 #include <iostream>
 #include <string>
-#include <vector>
 #include <unordered_map>
 using namespace std;
 ```
 
-The weaver set out tools: the string of thread (`string s`), a map to remember the last index of each character (`unordered_map<char,int>`), and two hands — `left` and `right` — forming a sliding window across the cloth.
-
 ---
 
-### 🧵 The Weaving Rite — Sliding Window
+## ⚔️ The Oracle’s Sliding Window Ritual
+
+_Expand when unique, shrink when repeated_
 
 ```cpp
-int lengthOfLongestSubstring(const string& s) {
-    unordered_map<char, int> lastIndex;
+int lengthOfLongestSubstring(string s) {
+    unordered_map<char, int> lastSeen;
     int left = 0;
     int best = 0;
 ```
 
-`lastIndex` records where a color last appeared. `left` is the start of the current unique window. `best` keeps the length of the longest spotless ribbon so far.
+The Oracle prepared:
+
+-   `lastSeen` → last index of each character
+-   `left` → start of the current window
 
 ---
 
+### 🌊 Walk the Scroll One Symbol at a Time
+
 ```cpp
-    for (int right = 0; right < s.size(); ++right) {
+    for (int right = 0; right < s.size(); right++) {
         char c = s[right];
 ```
 
-The right hand draws a new thread `c` into the window. Each arrival must be checked: has this color been seen inside the current ribbon?
+Each character stepped into the window.
 
 ---
 
+### 🚨 Detect Repetition and Shift the Window
+
 ```cpp
-        if (lastIndex.count(c) && lastIndex[c] >= left) {
-            // a repeat inside the current window — slide left past its previous occurrence
-            left = lastIndex[c] + 1;
+        if (lastSeen.count(c) && lastSeen[c] >= left) {
+            left = lastSeen[c] + 1;
         }
 ```
 
-If `c` was seen before and its last spot lies within the current window (`>= left`), the weaver moves the left hand to just after that previous occurrence. This removes the earlier color from the window, restoring uniqueness.
+If the character was already inside the window,
+the Oracle moved `left` just past its previous position.
+
+No overlap.
+No betrayal.
 
 ---
 
+### ✨ Record the New Longest Path
+
 ```cpp
-        lastIndex[c] = right;            // record the newest position of c
-        best = max(best, right - left + 1); // update best length
+        lastSeen[c] = right;
+        best = max(best, right - left + 1);
     }
     return best;
 }
 ```
 
-After adjusting, the weaver records the latest index of `c` and measures the window’s length (`right - left + 1`). If it’s the longest ribbon yet, `best` grows. The loop continues until the spool is exhausted.
+The Oracle updated:
+
+-   the last position of the character
+-   the maximum window length seen so far
 
 ---
 
-### 🎺 The Trial of Threads
+### 🎺 The Trial of the Symbol Path
 
 ```cpp
 int main() {
-    vector<string> tests = {"abcabcbb", "bbbbb", "pwwkew", "", "au", "dvdf"};
-    for (auto &t : tests) {
-        cout << "\"" << t << "\" -> " << lengthOfLongestSubstring(t) << endl;
-    }
+    string s = "abcabcbb";
+    cout << lengthOfLongestSubstring(s) << endl; // expected: 3
     return 0;
 }
 ```
 
-From these spools the weaver draws ribbons:
+The Oracle found the longest unbroken path:
 
--   `"abcabcbb"` → longest unique is `"abc"` length `3`.
--   `"bbbbb"` → only `"b"` length `1`.
--   `"pwwkew"` → `"wke"` or `"kew"` length `3`.
--   `""` → empty spool `0`.
--   `"au"` → `2`.
--   `"dvdf"` → `"vdf"` length `3` (note how left moves past the first `d` when the second appears).
+`"abc"` → length **3**
+
+No repeated symbols.
+Perfect harmony.
 
 ---
 
-### 🧠 Memory of the Loom
+### 🧠 Memory of the Unbroken Path Law
 
--   **Sliding window** — `left` and `right` hands maintain a current unique substring.
--   **lastIndex map** — remember the most recent position of each character.
--   **When a repeat within window appears:** move `left = lastIndex[c] + 1`.
--   **Update lastIndex\[c] = right** and **best = max(best, right-left+1)** each step.
--   **Time:** O(n) average, **Space:** O(min(n, charset_size)).
+-   Use sliding window with two pointers
+-   Store last seen index of each character
+-   On repetition, move left pointer forward
+-   Always expand right pointer
+-   **Time:** O(n)
+-   **Space:** O(n)
 
-Thus is remembered the saga of the **Longest Substring Without Repeating Characters** — the weaver’s quest to pull the longest unbroken ribbon of unique colors from the spool of letters.
+Thus is remembered the saga of
+**Longest Substring Without Repeating Characters**,
+where the Oracle walks a path of symbols,
+never turning back completely,
+only tightening the window of trust —
+until the longest stretch of pure uniqueness
+stands revealed in the scroll of fate. 🌈✨
