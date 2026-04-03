@@ -1,41 +1,42 @@
-## 🔢⚡ _The Census of the Set Soldiers: The Number of 1 Bits Saga_
+## 🔢⚡ _The Census of the Lit Torches: The Number of 1 Bits Saga_
 
-> \_"In the Binary Kingdom,
-> every number was an army of 32 soldiers —
-> each soldier standing in a position,
-> carrying either a `0` (absent) or a `1` (present).
+> \_"In the Kingdom of Bits,
+> every number was secretly a sequence of torches —
+> thirty-two of them, standing in a row.
 >
-> The Census Keeper was commanded:
+> Each torch was either **lit** (1) or **dark** (0).
 >
-> **'Count how many soldiers carry a `1`.
-> This is called the Hamming Weight —
-> the number of set bits in the binary representation.'**
+> The Royal Census Taker was summoned and commanded:
 >
-> The naive Keeper walked through all 32 positions
-> one by one, checking each soldier.
-> Correct — but inspected every position,
-> even those carrying `0`.
+> **'Count how many torches are lit
+> in the binary representation of this number.'**
 >
-> A second Keeper discovered a smarter approach —
-> checking only the last bit each time,
-> then shifting the number right to expose the next.
+> This count had a name — the **Hamming Weight** —
+> the number of `1` bits in a number.
 >
-> But the Wisest Keeper knew the most elegant trick of all —
-> the **Brian Kernighan trick**:
+> The Census Taker considered two ways:
 >
-> **'When you AND a number with itself minus one —
-> `n & (n-1)` —
-> the rightmost `1` bit is erased. Instantly.
-> Jump directly from one set soldier to the next.
-> Count only the ones that exist.
-> Skip every zero entirely.'**
+> **The Shifting Way:**
+> Check each torch one by one —
+> look at the rightmost torch,
+> record whether it is lit,
+> then shift the entire row right by one position,
+> bringing the next torch into view.
+> Repeat until darkness.
 >
-> Three ways to count the same soldiers.
-> One truth — always the Hamming Weight.
-> The Kernighan trick the most beautiful of all —
-> it runs in as many steps
-> as there are `1` bits in the number,
-> never wasting a step on a `0`."\_
+> **The Elegant Way — Brian Kernighan's Trick:**
+> Do not check every torch.
+> Instead, in one operation, extinguish the rightmost lit torch —
+> and count how many operations it takes
+> until all torches are dark.
+>
+> The elegant way is faster —
+> it runs in O(number of 1 bits) steps,
+> not always O(32).
+>
+> The Census Taker learned both ways —
+> for the elegant way reveals a beautiful truth
+> about how bits interact with subtraction."\_
 
 ---
 
@@ -43,51 +44,57 @@ This is the saga of **Number of 1 Bits**.
 
 You are given a positive integer `n`.
 
-Return the **number of set bits** (bits equal to `1`) in its binary representation.
+Return the **number of set bits** (1 bits) in its binary representation.
+
 This is also called the **Hamming Weight**.
 
 ```
-Input:  n = 11   (binary: 1011)   → Output: 3
-Input:  n = 128  (binary: 10000000) → Output: 1
-Input:  n = 2147483645             → Output: 30
+Input:  n = 11  →  binary: 1011  →  three 1 bits  →  Output: 3
+Input:  n = 128 →  binary: 10000000 → one 1 bit  →  Output: 1
+Input:  n = 2147483645 → binary: 1111111111111111111111111111101 → 30 ones → Output: 30
 ```
 
 ---
 
-## 🧠 The Oracle's Core Insight — Three Weapons to Count Set Bits
+## 🧠 The Oracle's Core Insight — Two Paths to Count the Lit Torches
 
-Before the approaches, understand the key operations:
-
-```
-n & 1         → isolates the last bit (1 if set, 0 if not)
-n >> 1        → shifts all bits right by 1 (moves to next bit)
-n & (n-1)     → erases the rightmost 1 bit (Brian Kernighan)
-__builtin_popcount(n) → compiler intrinsic, counts set bits in one call
-```
-
-**Why does `n & (n-1)` erase the rightmost 1 bit?**
+### Path One — The Shift and Check
 
 ```
-n     =  ...1 0 0 0  (the rightmost 1 followed by zeros)
-n - 1 =  ...0 1 1 1  (subtracting 1 flips the rightmost 1 to 0 and all zeros after it to 1)
-n & (n-1) = ...0 0 0 0  (AND clears the rightmost 1 and all below it)
+Check the rightmost bit with (n & 1).
+If it is 1 → increment count.
+Shift n right by 1 → (n >>= 1).
+Repeat until n becomes 0.
 ```
 
-Example:
+Simple. Reads every bit. At most 32 iterations for a 32-bit integer.
+
+### Path Two — Brian Kernighan's Trick
 
 ```
-n     = 1100  (12 in decimal)
-n-1   = 1011  (11)
-n&(n-1)= 1000  (8) → rightmost 1 was at position 2, now gone
+n & (n - 1)  →  turns off the rightmost 1 bit of n.
 ```
 
-This single operation lets us skip all zero bits and land
-directly on the next set bit — making the loop run exactly
-as many times as there are `1` bits.
+Why? Because subtracting 1 from `n` flips all bits
+from the rightmost `1` bit down to bit 0:
+
+```
+n     = ...1 0 0 0 0  (rightmost 1 at some position, zeros below it)
+n - 1 = ...0 1 1 1 1  (that 1 flips to 0, all zeros below become 1)
+n & (n-1) = ...0 0 0 0 0  (the rightmost 1 is gone, everything below also zeroed)
+```
+
+So `n = n & (n-1)` extinguishes exactly **one lit torch** per iteration —
+the rightmost one.
+
+Count how many times until `n` becomes 0 — that count is the answer.
+
+This runs in exactly **as many steps as there are 1 bits** —
+much better than always running 32 steps when there are few set bits.
 
 ---
 
-### 📜 The Scroll of the Binary Kingdom
+### 📜 The Scroll of the Torch Census
 
 ```cpp
 #include <iostream>
@@ -96,50 +103,23 @@ using namespace std;
 
 ---
 
-## ⚡ Approach 1 — Brian Kernighan's Trick (Optimal & Elegant)
+## 🔦 Path One — The Shift and Check
 
-_Erase the rightmost 1 bit each step — loop runs exactly k times where k = number of 1 bits_
+_Look at every torch, one by one_
 
 ```cpp
-int hammingWeight_Kernighan(uint32_t n) {
+int hammingWeight_shift(uint32_t n) {
     int count = 0;
-    while (n != 0) {
-        n = n & (n - 1);
-        count++;
-    }
-    return count;
-}
 ```
 
-The Census Keeper erased one set soldier per step.
+The Census Taker prepared their tally — `count` at zero.
 
-`n & (n - 1)` wiped the rightmost `1` from `n`.
-`count` was incremented once per erasure.
-
-When `n` became `0` — no soldiers remained.
-`count` held the exact number of set bits.
-
-**The beauty:** if `n` has only three `1` bits,
-the loop runs exactly **3 times** —
-not 32, not the number of digits —
-just the number of `1`s.
-
-For a number like `128 = 10000000`,
-the loop runs just once:
-`128 & 127 = 10000000 & 01111111 = 0` → done in one step.
-
--   **Time:** O(k) where k = number of set bits (at most O(32) = O(1))
--   **Space:** O(1)
+`uint32_t` was used — an unsigned 32-bit integer —
+to ensure right shifts filled with zeros, not sign bits.
 
 ---
 
-## 🔍 Approach 2 — Bit Shift: The Steady Walk
-
-_Check the last bit, shift right, repeat for all 32 positions_
-
 ```cpp
-int hammingWeight_Shift(uint32_t n) {
-    int count = 0;
     while (n != 0) {
         count += (n & 1);
         n >>= 1;
@@ -148,157 +128,160 @@ int hammingWeight_Shift(uint32_t n) {
 }
 ```
 
-The Keeper walked through the army from the right:
+At every step:
 
--   `n & 1` checked if the **last soldier** carried a `1`.
-    If yes — `count` incremented.
--   `n >>= 1` shifted the entire army one position right —
-    exposing the next soldier for inspection.
--   Loop continued until `n` became `0` (all soldiers passed).
+-   `n & 1` — peeked at the **rightmost torch**.
+    If lit (`1`), it contributed `1` to the count.
+    If dark (`0`), it contributed `0`.
 
-This is the most intuitive approach —
-each bit inspected in sequence, left to right of the traversal.
+-   `n >>= 1` — the entire row of torches shifted right by one.
+    The next torch slid into the rightmost position.
 
-Note: the loop only runs until `n = 0` —
-so leading zeros are not iterated.
-For `n = 11 = 1011`, the loop runs 4 times (not 32).
+The loop stopped when `n` became `0` — all torches had been inspected
+and none remained lit.
 
--   **Time:** O(log n) — runs until the highest set bit is passed
--   **Space:** O(1)
+> _"Shift. Check. Shift. Check.
+> Every torch passes through the rightmost window exactly once."_
 
 ---
 
-## 🏛️ Approach 3 — Fixed 32-Bit Loop: The Full March
+## ✨ Path Two — Brian Kernighan's Elegant Extinguishing Trick
 
-_Check all 32 bit positions, one by one, regardless of the number_
+_Extinguish one lit torch per step — only visit lit torches_
 
 ```cpp
-int hammingWeight_Fixed(uint32_t n) {
+int hammingWeight_kernighan(uint32_t n) {
     int count = 0;
-    for (int i = 0; i < 32; i++) {
-        if (n & (1u << i)) count++;
+```
+
+The Census Taker prepared their tally.
+
+---
+
+```cpp
+    while (n != 0) {
+        n = n & (n - 1);
+        count++;
     }
     return count;
 }
 ```
 
-The Keeper marched through all 32 positions —
-from position 0 (least significant) to position 31 (most significant).
+Each iteration performed one magical operation:
 
-`1u << i` created a mask with a single `1` at position `i`.
-`n & (1u << i)` tested if that specific position in `n` was set.
+**`n = n & (n - 1)`**
 
-Always exactly 32 iterations.
-Simple, predictable, easy to understand.
+This single line turned off the **rightmost lit torch** in `n`.
 
-Used when you want exhaustive bit checking —
-or when the problem involves a fixed-width integer.
+The Census Taker incremented the count —
+recording that one lit torch had just been extinguished.
 
--   **Time:** O(32) = O(1)
--   **Space:** O(1)
+The loop continued until `n` was `0` — all torches dark.
 
----
+The count of extinguishing operations
+was exactly the count of torches that had been lit.
 
-## 🚀 Approach 4 — Built-in Function: The Compiler's Gift
+**Visual proof on `n = 1011` (decimal 11):**
 
-_Let the hardware do it in one instruction_
+```
+n = 1011   (3 lit torches)
+n - 1 = 1010
+n & (n-1) = 1010    → rightmost 1 (at bit 0) extinguished. count=1
 
-```cpp
-int hammingWeight_Builtin(uint32_t n) {
-    return __builtin_popcount(n);
-}
+n = 1010
+n - 1 = 1001
+n & (n-1) = 1000    → rightmost 1 (at bit 1) extinguished. count=2
+
+n = 1000
+n - 1 = 0111
+n & (n-1) = 0000    → rightmost 1 (at bit 3) extinguished. count=3
+
+n = 0 → stop.  Answer: 3
 ```
 
-The compiler intrinsic `__builtin_popcount(n)` counts set bits
-using the CPU's native `POPCNT` instruction where available —
-effectively one hardware operation.
-
-In competitive programming and production code,
-this is the pragmatic choice.
-
-In interviews, always explain the manual approaches first —
-then mention this as the practical shortcut.
-
--   **Time:** O(1) — single CPU instruction on modern hardware
--   **Space:** O(1)
+Three lit torches. Three extinguishing operations. Three iterations.
+No wasted steps on dark torches. ✓
 
 ---
 
-### 🎺 The Trial of the Binary Kingdom
+### 🎺 The Trial of the Torch Census
 
 ```cpp
 int main() {
-    uint32_t n1 = 11;          // binary: 1011       → 3 set bits
-    uint32_t n2 = 128;         // binary: 10000000   → 1 set bit
-    uint32_t n3 = 4294967293u; // binary: 11111111 11111111 11111111 11111101 → 30 set bits
+    uint32_t n1 = 11;         // binary: 1011
+    uint32_t n2 = 128;        // binary: 10000000
+    uint32_t n3 = 2147483645; // binary: 1111111111111111111111111111101
 
-    cout << "Kernighan: " << hammingWeight_Kernighan(n1) << endl; // 3
-    cout << "Shift:     " << hammingWeight_Shift(n2)     << endl; // 1
-    cout << "Fixed:     " << hammingWeight_Fixed(n1)     << endl; // 3
-    cout << "Builtin:   " << hammingWeight_Builtin(n3)   << endl; // 30
+    cout << hammingWeight_shift(n1)      << endl; // 3
+    cout << hammingWeight_kernighan(n1)  << endl; // 3
+
+    cout << hammingWeight_shift(n2)      << endl; // 1
+    cout << hammingWeight_kernighan(n2)  << endl; // 1
+
+    cout << hammingWeight_shift(n3)      << endl; // 30
+    cout << hammingWeight_kernighan(n3)  << endl; // 30
     return 0;
 }
 ```
 
-**Kernighan trace for `n = 11 = 1011`:**
+**Shift trace for `n = 11` (binary: `1011`):**
+
+| Step | n (binary) | n & 1 | count | n after >>= 1 |
+| ---- | ---------- | ----- | ----- | ------------- |
+| 1    | 1011       | 1     | 1     | 0101          |
+| 2    | 0101       | 1     | 2     | 0010          |
+| 3    | 0010       | 0     | 2     | 0001          |
+| 4    | 0001       | 1     | 3     | 0000          |
+
+n = 0 → stop. Answer: **3** ✓
+
+**Kernighan trace for `n = 11` (binary: `1011`):**
 
 | Step | n (binary) | n-1 (binary) | n & (n-1) | count |
 | ---- | ---------- | ------------ | --------- | ----- |
-| 1    | `1011`     | `1010`       | `1010`    | 1     |
-| 2    | `1010`     | `1001`       | `1000`    | 2     |
-| 3    | `1000`     | `0111`       | `0000`    | 3     |
-| end  | `0000`     | loop ends    | —         | **3** |
+| 1    | 1011       | 1010         | 1010      | 1     |
+| 2    | 1010       | 1001         | 1000      | 2     |
+| 3    | 1000       | 0111         | 0000      | 3     |
 
-Three `1` bits → loop ran exactly three times. ✓
+n = 0 → stop. Answer: **3** ✓
 
-**Shift trace for `n = 11 = 1011`:**
-
-| Step | n (binary) | n & 1     | count | n >>= 1 |
-| ---- | ---------- | --------- | ----- | ------- |
-| 1    | `1011`     | 1         | 1     | `0101`  |
-| 2    | `0101`     | 1         | 2     | `0010`  |
-| 3    | `0010`     | 0         | 2     | `0001`  |
-| 4    | `0001`     | 1         | 3     | `0000`  |
-| end  | `0000`     | loop ends | **3** |
-
-Four iterations (length of binary representation), same answer. ✓
+The Shift Way took 4 steps. Kernighan's Way took 3 steps.
+For sparse numbers (few 1 bits) Kernighan's elegance shines brighter.
 
 ---
 
-### 🧠 Memory of the Set Soldier Census Law
+### 🧠 Memory of the Torch Census Law
 
-| Approach             | Time     | Space | Key Operation                                |
-| -------------------- | -------- | ----- | -------------------------------------------- |
-| **Kernighan**        | O(k)     | O(1)  | `n = n & (n-1)` erases rightmost 1 each step |
-| Bit Shift            | O(log n) | O(1)  | `count += (n&1)`, then `n >>= 1`             |
-| Fixed 32-bit         | O(1)     | O(1)  | `n & (1u << i)` checks each position         |
-| `__builtin_popcount` | O(1)     | O(1)  | Single CPU instruction                       |
+**The Shift and Check Way:**
 
-**The three XOR/bit laws to know:**
+-   `count += (n & 1)` — check rightmost bit
+-   `n >>= 1` — shift right to expose the next bit
+-   Loop until `n == 0` — stop when no lit torches remain
+-   O(32) worst case — always processes all bit positions
+-   Use `uint32_t` to avoid signed shift behavior
+
+**Brian Kernighan's Elegant Way:**
+
+-   `n = n & (n - 1)` — extinguishes the rightmost lit torch
+-   `count++` — record the extinguishing
+-   Loop until `n == 0` — stop when no torches remain
+-   O(k) where k = number of 1 bits — only visits lit torches
+-   **Why it works:** `n - 1` flips the rightmost 1 and all zeros below it;
+    AND-ing cancels those bits, turning off exactly the rightmost 1
+
+**The critical bit trick to memorize:**
 
 ```
-n & 1         → test if last bit is set
-n >> 1        → shift right (divide by 2, expose next bit)
-n & (n-1)     → erase rightmost 1 bit (Brian Kernighan's key)
+n & (n - 1)  removes the rightmost set bit from n
 ```
 
-**Interview answer order:**
-
-1. Start with the bit-shift approach (most intuitive, easy to explain).
-2. Then reveal the Kernighan trick (shows deep bit manipulation knowledge).
-3. Mention `__builtin_popcount` as a practical note.
-
-**Why `uint32_t` and not `int`?**
-Signed integers have undefined behavior on right shift if negative.
-`uint32_t` ensures safe, predictable bit operations.
+This trick appears in many bit problems — memorize it for life.
 
 Thus is remembered the saga of **Number of 1 Bits**,
-where the Census Keeper counted the set soldiers
-using three increasingly clever weapons —
-the steady shift that inspected every position,
-the fixed march that checked all 32 regardless,
-and the Kernighan trick that skipped all zeros entirely —
-jumping directly from one set soldier to the next
-with the single ancient operation `n & (n-1)`,
-erasing the rightmost `1` at each step
-until only silence remained. 🔢⚡✨
+where the Census Taker counted the lit torches
+of the Kingdom of Bits —
+either by checking every torch one by one through rightward shifting,
+or by Brian Kernighan's elegant law:
+subtract one, AND together, watch the rightmost torch go dark —
+and count how many times the darkness spreads
+until no torches remain lit. 🔢⚡✨
