@@ -1,11 +1,10 @@
 ## 🚢⚔️ _The Weight of the Tides: The Capacity To Ship Packages Within D Days Saga_
 
-> \*"Along the great harbour of the Kingdom of Cargo,
+> \_"Along the great harbour of the Kingdom of Cargo,
 > ships waited to carry packages across the sea.
 >
-> Each day, a ship could carry only so much weight —
+> Each day, a ship could carry only so much weight --
 > no more than its capacity.
->
 > Packages were loaded in order, one by one.
 > If a new package would exceed the ship's limit,
 > it was held for the next voyage.
@@ -14,18 +13,32 @@
 >
 > **'Find the minimum ship capacity
 > such that all packages are delivered
-> within exactly D days.'**
+> within exactly D days.
+> Packages must be shipped in order -- no reordering.'**
 >
-> Too weak a ship — and the days would run out.
-> Too mighty a ship — and capacity was wasted.
+> Too weak a ship -- and the days would run out.
+> Too mighty a ship -- and capacity was wasted.
 >
-> So the Oracle did not test every possible capacity.
+> The Oracle realized this was not a search
+> through the array of packages --
+> it was a search through the **space of possible capacities**.
 >
-> She searched the sea of answers
-> with the ancient ritual of halving —
-> narrowing the range
-> until the minimum sufficient capacity
-> stood alone at the water's edge."\*
+> The minimum capacity was `max(weights)` --
+> the ship must at least carry the heaviest single package.
+>
+> The maximum capacity was `sum(weights)` --
+> ship everything in one day.
+>
+> Somewhere between these two extremes
+> lay the perfect answer.
+>
+> And the Oracle knew exactly how to find it:
+> **Binary search on the answer space.**
+>
+> For each candidate capacity, simulate the loading.
+> If it works within D days -- try smaller.
+> If it fails -- try larger.
+> Halve the range until the minimum is found."\_
 
 ---
 
@@ -33,40 +46,55 @@ This is the saga of **Capacity To Ship Packages Within D Days**.
 
 You are given:
 
--   `weights[]` → the weight of each package, in order
--   `days` → the number of days available to ship everything
+-   `weights[]` -- the weight of each package, in shipping order.
+-   `days` -- the number of days available.
 
 Rules:
 
 -   Packages must be shipped **in order** (no reordering).
 -   Each day, packages are loaded until the next would exceed capacity.
--   Goal: **find the minimum ship capacity** to finish within `days` days.
+-   Find the **minimum ship capacity** to finish within `days` days.
+
+```
+Input:  weights = [1,2,3,4,5,6,7,8,9,10], days = 5
+Output: 15
+
+Input:  weights = [3,2,2,4,1,4], days = 3
+Output: 6
+
+Input:  weights = [1,2,3,1,1], days = 4
+Output: 3
+```
 
 ---
 
-## 🧠 The Oracle's Core Insight — Binary Search on Capacity
+## 🧠 The Oracle's Core Insight -- Binary Search on the Answer
 
-The possible capacity lies between:
+This is a classic **binary search on answer** problem.
+
+We are not searching for a target in the array.
+We are searching for the **minimum capacity** in a range of possible values.
 
 ```
-max(weights)  → minimum possible (must fit the heaviest package)
-sum(weights)  → maximum possible (ship everything in one day)
+left  = max(weights)    -- must carry the heaviest package
+right = sum(weights)    -- ship everything in one day
+
+For each candidate capacity mid:
+  Simulate greedy loading.
+  Count how many days are needed.
+  If days_needed <= D  -->  capacity is sufficient, try smaller
+  If days_needed > D   -->  capacity is too small, try larger
 ```
 
-For any chosen capacity `mid`:
+The greedy simulation is the **feasibility check** --
+it tells us whether a given capacity can finish the job in time.
 
-Simulate loading:
+The binary search finds the **minimum capacity** that passes the check.
 
--   Walk packages in order.
--   Accumulate weight into the current day.
--   If adding the next package would exceed `mid` → start a new day.
-
-If:
-
--   `days needed <= D` → capacity is valid
--   Otherwise → capacity is too small
-
-Thus we **binary search on the capacity**.
+```
+Time:  O(N * log(sum - max))  -- log range of capacities, N per simulation
+Space: O(1)
+```
 
 ---
 
@@ -82,9 +110,9 @@ using namespace std;
 
 ---
 
-## ⚓ The Oracle's Helper — Can We Ship in Time?
+## ⚓ The Feasibility Check -- Can We Ship in Time?
 
-_Simulate loading at a given capacity_
+_Simulate greedy loading at a given capacity_
 
 ```cpp
 bool canShip(vector<int>& weights, int days, int capacity) {
@@ -92,7 +120,10 @@ bool canShip(vector<int>& weights, int days, int capacity) {
     int currentLoad = 0;
 ```
 
-The Oracle began with one day and an empty ship.
+The Oracle began with day 1 and an empty ship.
+
+`daysNeeded` started at 1 -- the first day was already in use.
+`currentLoad` tracked how much weight was on the current day's ship.
 
 ---
 
@@ -108,8 +139,16 @@ The Oracle began with one day and an empty ship.
 
 Each package was loaded in order:
 
--   If it fit within the remaining capacity → load it aboard.
--   If not → set sail, begin a new day, start fresh.
+**If adding this package would exceed capacity** --
+the current day's ship was full.
+A new day began (`daysNeeded++`), the ship was emptied (`currentLoad = 0`),
+and the package was loaded onto the fresh ship.
+
+**If it fit** -- it was simply added to the current load.
+
+The greedy strategy is optimal here:
+load as much as possible each day before starting a new one.
+This minimizes the number of days needed for any given capacity.
 
 ---
 
@@ -118,14 +157,13 @@ Each package was loaded in order:
 }
 ```
 
-If the voyage was completed within the allotted days,
-the capacity was declared sufficient.
+If the total days needed was within the limit -- the capacity was sufficient.
 
 ---
 
 ## 🌊 The Oracle's Capacity-Finding Ritual
 
-_Binary search with the classic left <= right sentinel_
+_Binary search on the answer space_
 
 ```cpp
 int shipWithinDays(vector<int>& weights, int days) {
@@ -134,25 +172,27 @@ int shipWithinDays(vector<int>& weights, int days) {
     int answer = right;
 ```
 
--   `left` → the heaviest single package (the minimum possible capacity)
--   `right` → the total weight of all packages (one voyage covers all)
--   `answer` → records the best valid capacity found so far
+The search space was defined:
+
+-   `left = max(weights)` -- the ship must carry at least the heaviest package.
+    Any capacity below this would leave that package unshippable.
+-   `right = sum(weights)` -- a ship this large could carry everything in one day.
+-   `answer = right` -- initialized to the worst case (always valid).
 
 ---
 
-### 🧭 Narrow the Range of Capacities
+### 🧭 Halve the Range of Capacities
 
 ```cpp
     while (left <= right) {
         int mid = left + (right - left) / 2;
 ```
 
-The Oracle tested the middle capacity.
-The loop continues as long as the search space has not been exhausted.
+The Oracle tested the middle capacity in the current range.
 
 ---
 
-### ✅ If Capacity Is Sufficient
+### ✅ Capacity Is Sufficient -- Try Smaller
 
 ```cpp
         if (canShip(weights, days, mid)) {
@@ -161,13 +201,18 @@ The loop continues as long as the search space has not been exhausted.
         }
 ```
 
-The capacity worked —
-the Oracle recorded it as the best known answer,
-then pulled `right` inward to search for something smaller still.
+The simulation succeeded within D days.
+
+The Oracle recorded `mid` as the best answer so far,
+then pulled `right` inward -- searching for an even smaller capacity.
+
+> _"A valid answer is good.
+> But a smaller valid answer is better.
+> The Oracle always hunts for the minimum."_
 
 ---
 
-### ❌ If Capacity Is Too Small
+### ❌ Capacity Is Too Small -- Try Larger
 
 ```cpp
         else {
@@ -178,12 +223,13 @@ then pulled `right` inward to search for something smaller still.
 }
 ```
 
+The simulation needed more days than allowed.
 The ship was too weak.
-The Oracle demanded a stronger vessel
-and pushed `left` upward.
+
+The Oracle pushed `left` upward -- demanding a stronger vessel.
 
 When `left > right`, the search space collapsed.
-The last recorded `answer` held the minimum sufficient capacity.
+The last recorded `answer` was the minimum sufficient capacity.
 
 ---
 
@@ -191,44 +237,110 @@ The last recorded `answer` held the minimum sufficient capacity.
 
 ```cpp
 int main() {
-    vector<int> weights = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    int days = 5;
+    vector<int> weights1 = {1,2,3,4,5,6,7,8,9,10};
+    cout << shipWithinDays(weights1, 5) << endl; // expected: 15
 
-    cout << shipWithinDays(weights, days) << endl;
-    // expected: 15
+    vector<int> weights2 = {3,2,2,4,1,4};
+    cout << shipWithinDays(weights2, 3) << endl; // expected: 6
+
+    vector<int> weights3 = {1,2,3,1,1};
+    cout << shipWithinDays(weights3, 4) << endl; // expected: 3
+
     return 0;
 }
 ```
 
-The Oracle determined:
+---
 
--   With capacity `15`, the packages ship in exactly 5 days:
-    -   Day 1: 1 + 2 + 3 + 4 + 5 = 15
-    -   Day 2: 6 + 7 = 13
-    -   Day 3: 8 = 8
-    -   Day 4: 9 = 9
-    -   Day 5: 10 = 10
+**Full trace for `[1,2,3,4,5,6,7,8,9,10]`, days = 5:**
 
-No smaller ship could complete the voyage in time.
+Search range: `left = 10`, `right = 55`.
+
+| Step | left | right | mid | Simulation (days needed)       | Feasible? | Action          |
+| ---- | ---- | ----- | --- | ------------------------------ | --------- | --------------- |
+| 1    | 10   | 55    | 32  | [1-10] all in 1 day = 1 day   | Yes       | ans=32, right=31|
+| 2    | 10   | 31    | 20  | [1-6][7-10] = 2 days          | Yes       | ans=20, right=19|
+| 3    | 10   | 19    | 14  | [1-4][5-9 no,5-6][7-8][9][10] | 5 days?   | Check...        |
+
+Let me trace `mid=15` specifically:
+
+**Simulation with capacity = 15:**
+
+| Day | Packages loaded | Load | Exceeds 15? | Action    |
+| --- | --------------- | ---- | ----------- | --------- |
+| 1   | 1,2,3,4,5       | 15   | No          | Continue  |
+| 2   | 6,7             | 13   | 8 would = 21 | New day |
+| 3   | 8               | 8    | 9 would = 17 | New day |
+| 4   | 9               | 9    | 10 would = 19| New day |
+| 5   | 10              | 10   | Done        | --        |
+
+Days needed = 5 <= 5. **Feasible** ✓
+
+**Simulation with capacity = 14:**
+
+| Day | Packages loaded | Load | Action    |
+| --- | --------------- | ---- | --------- |
+| 1   | 1,2,3,4         | 10   | 5 would=15 > 14, new day |
+| 2   | 5,6             | 11   | 7 would=18 > 14, new day |
+| 3   | 7               | 7    | 8 would=15 > 14, new day |
+| 4   | 8               | 8    | 9 would=17 > 14, new day |
+| 5   | 9               | 9    | 10 would=19 > 14, new day |
+| 6   | 10              | 10   | Done      |
+
+Days needed = 6 > 5. **Not feasible** ✗
+
+So 15 is the minimum capacity. **Answer: 15** ✓
+
+---
+
+**Trace for `[3,2,2,4,1,4]`, days = 3:**
+
+Search range: `left = 4`, `right = 16`.
+
+**Simulation with capacity = 6:**
+
+| Day | Packages loaded | Load | Action    |
+| --- | --------------- | ---- | --------- |
+| 1   | 3,2             | 5    | 2 would=7 > 6, new day |
+| 2   | 2,4             | 6    | 1 would=7 > 6, new day |
+| 3   | 1,4             | 5    | Done      |
+
+Days needed = 3 <= 3. **Feasible** ✓
+
+**Simulation with capacity = 5:**
+
+| Day | Packages loaded | Load | Action    |
+| --- | --------------- | ---- | --------- |
+| 1   | 3,2             | 5    | 2 would=7 > 5, new day |
+| 2   | 2               | 2    | 4 would=6 > 5, new day |
+| 3   | 4,1             | 5    | 4 would=9 > 5, new day |
+| 4   | 4               | 4    | Done      |
+
+Days needed = 4 > 3. **Not feasible** ✗
+
+**Answer: 6** ✓
 
 ---
 
 ### 🧠 Memory of the Harbour Law
 
--   Binary search on **answer space** (capacity), not on the array
--   Lower bound = heaviest single package
--   Upper bound = sum of all packages
--   Simulate loading greedily to test feasibility
--   If feasible → save answer, shrink right; else → grow left
--   Loop ends when `left > right`; return saved `answer`
--   **Time:** O(n log(sum − max))
--   **Space:** O(1)
+-   **Binary search on the answer** -- not on the array, but on the range of possible capacities
+-   **Search range:** `[max(weights), sum(weights)]`
+-   **Feasibility check:** greedily simulate loading, count days needed
+    -   Load packages in order until the next would exceed capacity
+    -   Start a new day when capacity is exceeded
+    -   If `daysNeeded <= D` -- capacity is sufficient
+-   **Binary search logic:**
+    -   If feasible -- record answer, try smaller (`right = mid - 1`)
+    -   If not feasible -- try larger (`left = mid + 1`)
+-   **Greedy loading is optimal** -- packing as much as possible each day minimizes total days
+-   **Time:** O(N * log(sum - max)) -- log range for binary search, N per simulation
+-   **Space:** O(1) -- only a few variables
 
-Thus is remembered the saga of
-**Capacity To Ship Packages Within D Days**,
-where the Oracle does not weigh every possible ship blindly —
-but halves the harbour of possibilities again and again,
-testing each candidate with a swift simulation,
-until the mightiest-yet-smallest vessel is found —
+Thus is remembered the saga of **Capacity To Ship Packages Within D Days**,
+where the Oracle did not test every possible ship blindly
+but halved the harbour of possibilities again and again --
+testing each candidate with a swift greedy simulation --
+until the mightiest-yet-smallest vessel was found,
 just strong enough to carry all cargo
-before the tide of deadline runs out. 🚢✨
+before the tide of deadline ran out. 🚢⚔️✨

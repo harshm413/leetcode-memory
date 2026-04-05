@@ -1,14 +1,14 @@
 ## 🎭🎯 _The Impostor Knights of the Twisted Kingdom: The Search in Rotated Sorted Array II Saga_
 
 > \_"The Twisted Kingdom had been searched before.
-> The Seeker had learned its ways —
+> The Seeker had learned its ways --
 > always one half obeys the old order,
-> and the other curves strangely.
+> and the other curves strangely around the rotation point.
 >
 > But the King, cunning and devious,
-> had now filled the kingdom with **Impostor Knights** —
-> soldiers bearing the same banners
-> as those who guarded the borders.
+> had now filled the kingdom with **Impostor Knights** --
+> soldiers bearing the same banners,
+> duplicates lurking at every corner.
 >
 > When the Seeker looked at the edges
 > and peered at the middle,
@@ -16,72 +16,82 @@
 >
 > **Were the borders and the middle
 > wearing the same banner
-> because the sorted half was there —
+> because the sorted half was there --
 > or merely because an impostor stood in disguise?**
 >
 > The Seeker could not know.
 >
 > So he devised a new law:
 >
-> **'When the border and the middle
-> wear the same face —
+> **'When the left border, the middle, and the right border
+> all wear the same face --
 > strip one impostor from each side
 > and look again.'**
 >
 > The kingdom would shrink,
 > the disguise would fall,
-> and truth would stand revealed."\_
+> and truth would stand revealed.
+>
+> Everything else remained the same as the original quest --
+> identify which half is sorted,
+> check if the target lies within that sorted range,
+> and eliminate the other half."\_
 
 ---
 
 This is the saga of **Search in Rotated Sorted Array II**.
 
-You are given:
+You are given a rotated sorted array `nums` that **may contain duplicates**
+and a target value `target`.
 
--   a rotated sorted array `nums` — **possibly containing duplicates**
--   a target value `target`
+Return `true` if `target` exists, `false` otherwise.
 
-Your task:
+```
+Input:  nums = [2, 5, 6, 0, 0, 1, 2], target = 0
+Output: true
 
--   Return `true` if `target` exists.
--   Otherwise `false`.
+Input:  nums = [2, 5, 6, 0, 0, 1, 2], target = 3
+Output: false
+
+Input:  nums = [1, 0, 1, 1, 1], target = 0
+Output: true
+```
 
 ---
 
-## 🧠 The Oracle's Core Problem — Duplicates Break the Old Law
+## 🧠 The Oracle's Core Problem -- Duplicates Break the Old Law
 
-In the original kingdom (no duplicates),
-the Seeker could always tell which half was sorted
-by comparing the left border with the middle:
-
-```
-nums[l] <= nums[mid]  →  left half is sorted
-```
-
-But now with impostors (duplicates), consider:
+In the original rotated search (no duplicates),
+the Seeker could always determine which half was sorted:
 
 ```
-nums = {1, 1, 1, 3, 1}
-l = 0, r = 4, mid = 2
-nums[l] = 1, nums[mid] = 1
+If nums[left] <= nums[mid]  -->  left half is sorted
+Else                         -->  right half is sorted
 ```
 
-Both borders wear the same banner as the middle.
+But with duplicates, consider:
 
-Is the left half sorted? Is the right?
-**The Seeker cannot tell.**
+```
+nums = [1, 0, 1, 1, 1]
+left = 0, right = 4, mid = 2
+nums[left] = 1, nums[mid] = 1, nums[right] = 1
+```
 
-So he invented the **Impostor Stripping Rule**:
+All three are identical. Is the left half sorted? Is the right?
+The Seeker cannot tell. The impostors have created perfect confusion.
 
-> When `nums[l] == nums[mid] == nums[r]`,
-> strip one soldier from each end:
-> `l++` and `r--`
+The solution: **strip the ambiguity**.
 
-And try again with a smaller, cleaner kingdom.
+> When `nums[left] == nums[mid] == nums[right]`,
+> shrink both ends: `left++`, `right--`.
+> This removes one impostor from each flank
+> without losing the target.
+
+After stripping, the standard rotated binary search logic resumes.
 
 ---
 
-### 📜 The Seeker's Compass and Map
+### 📜 The Scroll of the Impostor Kingdom
 
 ```cpp
 #include <iostream>
@@ -89,133 +99,134 @@ And try again with a smaller, cleaner kingdom.
 using namespace std;
 ```
 
-The same scrolls from the first quest.
-But now the kingdom held shadows of itself — duplicates lurking at every corner.
-
 ---
 
-## 🗡️ The Search Ritual — Rotated Binary Search with Impostor Detection
+## 🗡️ The Search Ritual -- Rotated Binary Search with Impostor Detection
 
 ```cpp
 bool search(vector<int>& nums, int target) {
-    int l = 0, r = nums.size() - 1;
+    int left = 0, right = nums.size() - 1;
 ```
 
-The Seeker planted his feet at both ends of the realm,
-just as before.
+The Seeker planted sentinels at both ends of the realm.
 
 ---
+
+## 🔁 Halve Until Found or Exhausted
 
 ```cpp
-    while (l <= r) {
-        int mid = l + (r - l) / 2;
+    while (left <= right) {
+        int mid = left + (right - left) / 2;
 ```
 
-He split the kingdom at the middle
-and gazed upon the banner there.
+The Seeker split the kingdom at the middle.
 
 ---
 
-### 🎯 Step 1 — Is the Knight Standing Right Here?
+### 🎯 Step 1 -- Target Found at Mid
 
 ```cpp
         if (nums[mid] == target) return true;
 ```
 
-If the knight's banner matched the middle exactly —
-the quest was over.
-No need to look further.
+If the middle element matched the target --
+the quest ended immediately.
 
 ---
 
-### 🎭 Step 2 — Unmask the Impostors First
+### 🎭 Step 2 -- Strip the Impostors
 
 ```cpp
-        if (nums[l] == nums[mid] && nums[mid] == nums[r]) {
-            l++;
-            r--;
+        if (nums[left] == nums[mid] && nums[mid] == nums[right]) {
+            left++;
+            right--;
         }
 ```
 
-This is the **crucial new scene** that did not exist before.
+This is the **crucial new step** that did not exist in the original.
 
-The Seeker looked at the left border, the middle, and the right border.
+When all three -- left border, middle, right border --
+wore the same banner, the Seeker could not determine
+which half was sorted.
 
-If **all three wore the same mask** —
-he could not determine which half was sorted.
-The impostors had created perfect confusion.
+He stripped one soldier from each flank and tried again.
 
-So he simply **stripped one soldier from each flank**
-and shrank the kingdom by one on both sides.
+No information was lost -- the target could not hide
+in a border soldier that was merely a copy of the middle.
 
-No information was lost — the target could not hide
-in a border soldier who was merely a copy.
+> _"When the disguise is perfect,
+> do not guess. Simply peel away the mask
+> one layer at a time."_
 
 ---
 
-### ⚔️ Step 3 — The Law of the Straight Half (Left Sorted)
+### ⚔️ Step 3 -- Left Half Is Sorted
 
 ```cpp
-        else if (nums[l] <= nums[mid]) {
+        else if (nums[left] <= nums[mid]) {
 ```
 
-Now, with impostors stripped away,
-if the left border was still smaller than or equal to the middle,
-the **left half obeyed the Old Law of Sortedness**.
+With impostors stripped, if `nums[left] <= nums[mid]`,
+the left half `[left..mid]` was in sorted order.
 
 ---
 
 ```cpp
-            if (nums[l] <= target && target < nums[mid]) {
-                r = mid - 1;
+            if (nums[left] <= target && target < nums[mid]) {
+                right = mid - 1;
             } else {
-                l = mid + 1;
+                left = mid + 1;
             }
 ```
 
-If the target's banner fell within the left half's clean, ordered range —
-ride left.
+If the target fell within the sorted left range
+(`nums[left] <= target < nums[mid]`) --
+search left. Eliminate the right half.
 
-Otherwise, the knight hid somewhere in the twisted right.
-Ride right.
+Otherwise -- the target was in the unsorted right half.
+Search right.
 
 ---
 
-### 🔄 Step 4 — The Twisted Right Half Must Be Sorted
+### 🔄 Step 4 -- Right Half Is Sorted
 
 ```cpp
         } else {
-            if (nums[mid] < target && target <= nums[r]) {
-                l = mid + 1;
+```
+
+If the left half was not sorted,
+the right half `[mid..right]` must be sorted
+(by the nature of rotated arrays).
+
+---
+
+```cpp
+            if (nums[mid] < target && target <= nums[right]) {
+                left = mid + 1;
             } else {
-                r = mid - 1;
+                right = mid - 1;
             }
         }
     }
 ```
 
-If the left half was not sorted,
-by the kingdom's nature the **right half must be**.
+If the target fell within the sorted right range
+(`nums[mid] < target <= nums[right]`) --
+search right.
 
-The same logic applied in reverse:
-If the target lay within the right half's clean range — ride right.
-Otherwise, the knight lurked in the twisted left.
-
-Step by step, impostor by impostor, half by half —
-the Seeker closed in.
+Otherwise -- search left.
 
 ---
 
-### 🏁 If the Knight Was Never Found
+## 🏁 Target Not Found
 
 ```cpp
     return false;
 }
 ```
 
-When the search space collapsed entirely
-and no banner had matched —
-the knight did not exist in this kingdom.
+The sentinels crossed. The kingdom was exhausted.
+The target did not exist.
 
 ---
 
@@ -224,44 +235,103 @@ the knight did not exist in this kingdom.
 ```cpp
 int main() {
     vector<int> nums1 = {2, 5, 6, 0, 0, 1, 2};
-    cout << search(nums1, 0) << endl; // true
+    cout << (search(nums1, 0) ? "true" : "false") << endl;
+    // expected: true
 
     vector<int> nums2 = {2, 5, 6, 0, 0, 1, 2};
-    cout << search(nums2, 3) << endl; // false
+    cout << (search(nums2, 3) ? "true" : "false") << endl;
+    // expected: false
+
+    vector<int> nums3 = {1, 0, 1, 1, 1};
+    cout << (search(nums3, 0) ? "true" : "false") << endl;
+    // expected: true
 
     return 0;
 }
 ```
 
-In the first trial:
-The kingdom `{2,5,6,0,0,1,2}` hid the knight `0` among duplicates.
-The Seeker stripped the border impostors (`2` on both ends),
-identified the sorted half,
-and found the knight at position `3`.
+---
 
-In the second trial:
-No knight bearing banner `3` existed anywhere.
-The Seeker exhausted the search — and returned `false`.
+**Full trace for `[2, 5, 6, 0, 0, 1, 2]`, target = 0:**
+
+| Step | left | right | mid | nums[mid] | Action                                    |
+| ---- | ---- | ----- | --- | --------- | ----------------------------------------- |
+| 1    | 0    | 6     | 3   | 0         | 0 == target --> Return **true**           |
+
+**Answer: true** ✓
+
+Found on the first glance -- mid happened to be the target.
+
+---
+
+**Full trace for `[2, 5, 6, 0, 0, 1, 2]`, target = 3:**
+
+| Step | left | right | mid | nums[mid] | nums[l] | nums[r] | Action                          |
+| ---- | ---- | ----- | --- | --------- | ------- | ------- | ------------------------------- |
+| 1    | 0    | 6     | 3   | 0         | 2       | 2       | Left sorted? 2<=0? No. Right sorted. 0<3<=2? No. right=2 |
+| 2    | 0    | 2     | 1   | 5         | 2       | 6       | Left sorted? 2<=5? Yes. 2<=3<5? Yes. right=0 |
+| 3    | 0    | 0     | 0   | 2         | 2       | 2       | 2 != 3. All equal? Yes. left=1, right=-1 |
+| 4    | 1    | -1    | --  | --        | --      | --      | left > right. Exit loop.        |
+
+**Answer: false** ✓
+
+---
+
+**Full trace for `[1, 0, 1, 1, 1]`, target = 0:**
+
+| Step | left | right | mid | nums[mid] | nums[l] | nums[r] | Action                          |
+| ---- | ---- | ----- | --- | --------- | ------- | ------- | ------------------------------- |
+| 1    | 0    | 4     | 2   | 1         | 1       | 1       | All three equal (1==1==1). Strip: left=1, right=3 |
+| 2    | 1    | 3     | 2   | 1         | 0       | 1       | 1 != 0. Left sorted? 0<=1? Yes. 0<=0<1? Yes. right=1 |
+| 3    | 1    | 1     | 1   | 0         | 0       | 0       | 0 == target --> Return **true** |
+
+**Answer: true** ✓
+
+Step 1 stripped the impostors (all three were `1`).
+Step 2 identified the left half as sorted and narrowed the range.
+Step 3 found the target.
+
+---
+
+## ⚠️ Worst Case -- O(N)
+
+When all elements are identical except one:
+
+```
+nums = [1, 1, 1, 1, 1, 1, 0, 1, 1, 1]
+```
+
+The impostor stripping step (`left++, right--`) removes only 2 elements per iteration.
+In the worst case, this degrades to O(N).
+
+This is unavoidable with duplicates --
+no algorithm can do better than O(N) in the worst case
+because duplicates hide information that binary search needs.
+
+**Average case** is still O(log N) when duplicates are sparse.
 
 ---
 
 ### 🧠 Memory of the Impostor Kingdom Law
 
--   Same as Rotated Binary Search I — but with **one new scene**
--   **The new scene:** when `nums[l] == nums[mid] == nums[r]` → do `l++, r--`
--   This strips impostors from both flanks when identity cannot be determined
--   After stripping, the old left/right sorted-half logic resumes exactly
--   **Best/Average Time:** O(log n)
--   **Worst Time:** O(n) — when all elements are identical impostors
+-   Same as Rotated Binary Search I -- but with **one new step**
+-   **The impostor step:** when `nums[left] == nums[mid] == nums[right]`
+    -   Cannot determine which half is sorted
+    -   Strip both ends: `left++`, `right--`
+-   After stripping, the standard logic resumes:
+    -   If `nums[left] <= nums[mid]` --> left half is sorted
+    -   Else --> right half is sorted
+    -   Check if target is in the sorted range, eliminate the other half
+-   **Best/Average Time:** O(log N)
+-   **Worst Time:** O(N) -- when all elements are duplicates
 -   **Space:** O(1)
 
-Thus is remembered the saga of
-**Search in Rotated Sorted Array II**,
-where the Twisted Kingdom returned — this time disguised in duplicate banners.
+Thus is remembered the saga of **Search in Rotated Sorted Array II**,
+where the Twisted Kingdom returned disguised in duplicate banners.
 The Seeker did not panic.
 He simply learned to strip one impostor from each flank
-whenever the borders and the middle wore the same face —
-shrinking the deception step by step,
+whenever the borders and the middle wore the same face --
+shrinking the deception step by step
 until the truth of the sorted half was clear again,
 and the lost knight's banner
-was either found — or declared never to have existed. 🎭🎯✨
+was either found or declared never to have existed. 🎭🎯✨
