@@ -1,14 +1,14 @@
 ## 🌊🏆 _The K Champions of the Endless River: The Kth Largest Element in a Stream Saga_
 
 > \_"Along the banks of the Endless River,
-> numbers flowed ceaselessly —
+> numbers flowed ceaselessly --
 > one after another, without pause,
 > without warning, without end.
 >
 > The Royal Analyst stood at the bank
 > with a single mandate:
 >
-> **'At any moment — after any new number arrives —
+> **'At any moment -- after any new number arrives --
 > tell me the Kth largest number
 > among all numbers seen so far.'**
 >
@@ -25,17 +25,16 @@
 > And among those K, the smallest of them
 > is always the Kth largest overall.'**
 >
-> She built a small **Min-Heap of size exactly K** —
+> She built a small **Min-Heap of size exactly K** --
 > a tightly guarded leaderboard of the top K champions.
 >
 > The smallest champion in the leaderboard
-> — always sitting at the top of the min-heap —
+> -- always sitting at the top of the min-heap --
 > was the answer at every moment.
 >
 > When a new number arrived from the river:
-> If it was larger than the weakest champion —
-> it displaced them and entered the leaderboard.
-> If it was too weak — it was ignored.
+> push it into the heap.
+> If the heap exceeded K -- expel the weakest.
 >
 > The heap never grew beyond K.
 > The answer was always at the top.
@@ -48,55 +47,55 @@ This is the saga of **Kth Largest Element in a Stream**.
 
 Design a class that finds the **Kth largest element** in a stream.
 
-```
-KthLargest(int k, vector<int>& nums)
-    — initialize with k and an initial list of numbers.
-
-int add(int val)
-    — add val to the stream, return the Kth largest element.
-```
+-   `KthLargest(int k, vector<int>& nums)` -- initialize with k and an initial list.
+-   `int add(int val)` -- add val to the stream, return the Kth largest.
 
 ```
 k = 3, nums = [4, 5, 8, 2]
 
-add(3)  → [2,3,4,5,8] → 3rd largest = 4
-add(5)  → [2,3,4,5,5,8] → 3rd largest = 5
-add(10) → [2,3,4,5,5,8,10] → 3rd largest = 5
-add(9)  → [2,3,4,5,5,8,9,10] → 3rd largest = 8 ← wait let's trace properly
-add(4)  → ...
+add(3)  → 4
+add(5)  → 5
+add(10) → 5
+add(9)  → 8
+add(4)  → 8
 ```
 
 ---
 
-## 🧠 The Oracle's Core Insight — A Min-Heap of Size K
+## 🧠 The Oracle's Core Insight -- Min-Heap of Size K
 
-The key insight that makes everything O(log K):
+The key insight:
 
 > **The Kth largest element overall
 > is the SMALLEST element among the top K largest.**
 
-If we maintain exactly the **K largest elements** seen so far
-in a **min-heap** — the heap's top is always the Kth largest.
+If we maintain exactly the K largest elements seen so far
+in a **min-heap** -- the heap's top is always the Kth largest.
 
-```
-Stream so far: [4, 5, 8, 2, 3]   k = 3
-Top 3 largest: {3, 4, 5} → wait, {4, 5, 8}
-Min-heap top = 4 = 3rd largest ✓
-```
+Why a min-heap and not a max-heap?
+
+A max-heap would give us the 1st largest (the maximum) at the top.
+But we need the Kth largest -- the smallest among the top K.
+A min-heap of size K keeps the weakest champion on top --
+and that weakest champion IS the Kth largest.
 
 When a new number `val` arrives:
 
 ```
-If heap.size() < k  → always push val into the heap
-Else if val > heap.top() → pop the min (too small for top K), push val
-Else → val is too small to be in top K, ignore it
+Push val into the heap.
+If heap.size() > k → pop the minimum (too weak for top K).
+Return heap.top() → the current Kth largest.
 ```
 
-After every operation — `heap.top()` is the answer.
+The "push then pop if oversized" approach is simpler
+than checking `val > heap.top()` first --
+it handles all cases uniformly, including when the heap
+has fewer than K elements.
 
-The heap never grows beyond K.
-The min at the top is the Kth largest.
-Always.
+```
+Time:  O(log K) per add -- push and pop on a heap of size K
+Space: O(K) -- the heap never exceeds K elements
+```
 
 ---
 
@@ -111,7 +110,7 @@ using namespace std;
 
 ---
 
-## 🏆 The Leaderboard is Built
+## 🏆 The Leaderboard Is Built
 
 ```cpp
 class KthLargest {
@@ -119,10 +118,10 @@ class KthLargest {
     priority_queue<int, vector<int>, greater<int>> minHeap;
 ```
 
--   `k` — the rank we must always track.
--   `minHeap` — a **min-heap** (using `greater<int>` to flip C++'s default max-heap).
-    It holds exactly the top K largest numbers seen so far.
-    Its top is always the **smallest among the top K** = the Kth largest overall.
+-   `k` -- the rank we must always track.
+-   `minHeap` -- a **min-heap** using `greater<int>` to flip C++'s default max-heap.
+    It holds the top K largest numbers seen so far.
+    Its top is always the **smallest among the top K** = the Kth largest.
 
 ---
 
@@ -135,28 +134,27 @@ public:
     }
 ```
 
-The Analyst stood at the river's bank
-and processed every initial number by calling `add`.
-
-Rather than writing special initialization logic,
-she reused the same `add` ritual for every number —
-keeping the code clean and the heap correctly sized from the start.
+The Analyst processed every initial number through `add` --
+reusing the same logic for initialization and streaming.
+No special constructor code needed.
 
 ---
 
-## 🌊 The ADD Ritual — Receive a Number, Maintain the Leaderboard
+## 🌊 The ADD Ritual -- Receive a Number, Maintain the Leaderboard
 
 ```cpp
     int add(int val) {
         minHeap.push(val);
 ```
 
-Every incoming number was pushed into the heap without hesitation.
+Every incoming number was pushed into the heap.
+No questions asked. No pre-filtering.
 
-The heap temporarily held one extra element —
-one more than its target size of K.
+The heap temporarily held K+1 elements.
 
 ---
+
+### 🗡️ Expel the Weakest If Oversized
 
 ```cpp
         if ((int)minHeap.size() > k) {
@@ -164,18 +162,18 @@ one more than its target size of K.
         }
 ```
 
-If the heap now exceeded K elements,
-the weakest champion — the minimum — was immediately expelled.
-
-> _"Only K champions may stand in the leaderboard.
-> The weakest challenger to enter
-> was also the first to leave —
-> for they were not worthy of the top K."_
+If the heap exceeded K elements,
+the weakest -- the minimum at the top -- was expelled.
 
 After this step, the heap held exactly K elements
-(or fewer than K if the stream hasn't reached K elements yet).
+(or fewer if the stream hasn't reached K numbers yet).
+
+> _"Only K champions may stand in the leaderboard.
+> The weakest is always the first to fall."_
 
 ---
+
+### 👑 Return the Kth Largest
 
 ```cpp
         return minHeap.top();
@@ -183,11 +181,10 @@ After this step, the heap held exactly K elements
 };
 ```
 
-The top of the min-heap was the answer —
-the smallest among the top K largest numbers seen so far.
-That is always the Kth largest.
+The top of the min-heap was the answer --
+the smallest among the top K = the Kth largest overall.
 
-Return it instantly. O(1).
+O(1) to read. Always correct.
 
 ---
 
@@ -197,64 +194,141 @@ Return it instantly. O(1).
 int main() {
     vector<int> nums = {4, 5, 8, 2};
     KthLargest kth(3, nums);
-    // Initial stream: [4, 5, 8, 2]
-    // Heap after init: {4, 5, 8} (top=4, the 3rd largest)
 
-    cout << kth.add(3)  << endl; // stream: [2,3,4,5,8]   heap:{3,4,5,8}→pop2? No
-                                  // heap after: {3,4,5} wait — push 3: {2,3,4,5,8}?
-                                  // Let's trace cleanly:
+    cout << kth.add(3)  << endl; // 4
+    cout << kth.add(5)  << endl; // 5
+    cout << kth.add(10) << endl; // 5
+    cout << kth.add(9)  << endl; // 8
+    cout << kth.add(4)  << endl; // 8
     return 0;
 }
 ```
 
-Let us trace the heap step by step cleanly:
+---
 
-**Initialization with `[4, 5, 8, 2]`, k=3:**
+**Initialization trace with `[4, 5, 8, 2]`, k=3:**
 
-| Number Added | Heap After Push | Size > 3? | Pop | Heap Final | Top (Answer) |
-| ------------ | --------------- | --------- | --- | ---------- | ------------ |
-| 4            | {4}             | No        | —   | {4}        | 4            |
-| 5            | {4,5}           | No        | —   | {4,5}      | 4            |
-| 8            | {4,5,8}         | No        | —   | {4,5,8}    | 4            |
-| 2            | {2,4,5,8}       | Yes       | 2   | {4,5,8}    | 4            |
+| Number | Heap after push | Size > 3? | Pop  | Heap final | Top |
+| ------ | --------------- | --------- | ---- | ---------- | --- |
+| 4      | {4}             | No        | --   | {4}        | 4   |
+| 5      | {4, 5}          | No        | --   | {4, 5}     | 4   |
+| 8      | {4, 5, 8}       | No        | --   | {4, 5, 8}  | 4   |
+| 2      | {2, 4, 5, 8}    | Yes       | 2    | {4, 5, 8}  | 4   |
 
-Heap after init: `{4, 5, 8}`, top = 4.
+After init: heap = `{4, 5, 8}`, top = 4 (the 3rd largest).
 
-**Subsequent `add` calls:**
+The `2` was pushed then immediately expelled -- too weak for the top 3.
 
-| add(val) | Push → Heap | Pop?  | Heap After | Answer |
-| -------- | ----------- | ----- | ---------- | ------ |
-| add(3)   | {3,4,5,8}   | pop 3 | {4,5,8}    | **4**  |
-| add(5)   | {4,5,5,8}   | pop 4 | {5,5,8}    | **5**  |
-| add(10)  | {5,5,8,10}  | pop 5 | {5,8,10}   | **5**  |
-| add(9)   | {5,8,9,10}  | pop 5 | {8,9,10}   | **8**  |
-| add(4)   | {4,8,9,10}  | pop 4 | {8,9,10}   | **8**  |
+---
 
-The leaderboard held exactly 3 champions at all times.
-The weakest champion was always the Kth largest answer.
+**Subsequent add() calls:**
+
+| add(val) | Heap after push  | Pop?  | Heap after pop | Answer |
+| -------- | ---------------- | ----- | -------------- | ------ |
+| add(3)   | {3, 4, 5, 8}    | pop 3 | {4, 5, 8}      | **4**  |
+| add(5)   | {4, 5, 5, 8}    | pop 4 | {5, 5, 8}      | **5**  |
+| add(10)  | {5, 5, 8, 10}   | pop 5 | {5, 8, 10}     | **5**  |
+| add(9)   | {5, 8, 9, 10}   | pop 5 | {8, 9, 10}     | **8**  |
+| add(4)   | {4, 8, 9, 10}   | pop 4 | {8, 9, 10}     | **8**  |
+
+**Answers: 4, 5, 5, 8, 8** ✓
+
+At add(3): `3` entered but was immediately expelled (weaker than all top 3).
+At add(5): `5` entered, `4` was expelled. New 3rd largest = 5.
+At add(9): `9` entered, `5` was expelled. New 3rd largest = 8.
+At add(4): `4` entered but was expelled. Top 3 unchanged.
+
+---
+
+**Trace for k=1, nums=[], add(1), add(2), add(3):**
+
+| add(val) | Heap after push | Pop? | Heap final | Answer |
+| -------- | --------------- | ---- | ---------- | ------ |
+| add(1)   | {1}             | No   | {1}        | **1**  |
+| add(2)   | {1, 2}          | pop 1| {2}        | **2**  |
+| add(3)   | {2, 3}          | pop 2| {3}        | **3**  |
+
+**Answers: 1, 2, 3** ✓
+
+k=1 means "always return the maximum." The heap holds exactly 1 element.
+
+---
+
+**Trace for k=2, nums=[0], add(-1), add(1), add(-2):**
+
+Init: push 0 → heap = {0}. Size 1 < k=2, no pop.
+
+| add(val) | Heap after push | Pop?  | Heap final | Answer |
+| -------- | --------------- | ----- | ---------- | ------ |
+| add(-1)  | {-1, 0}         | No    | {-1, 0}    | **-1** |
+| add(1)   | {-1, 0, 1}      | pop -1| {0, 1}     | **0**  |
+| add(-2)  | {-2, 0, 1}      | pop -2| {0, 1}     | **0**  |
+
+**Answers: -1, 0, 0** ✓
+
+Negative numbers work identically. The heap doesn't care about sign.
+At add(-1): heap has only 2 elements (exactly k), no pop. Top = -1.
+
+---
+
+## 🔍 Why Not Sort Every Time?
+
+Sorting all N elements after every add: O(N log N) per call.
+With the min-heap of size K: O(log K) per call.
+
+For a stream of 1 million numbers with K=10:
+-   Sorting: ~20 million operations per call.
+-   Heap: ~3 operations per call.
+
+The heap is astronomically faster for streaming data.
+
+---
+
+## 🔄 Why Push-Then-Pop Instead of Check-Then-Push?
+
+An alternative approach checks first:
+
+```cpp
+if (minHeap.size() < k || val > minHeap.top()) {
+    minHeap.push(val);
+    if (minHeap.size() > k) minHeap.pop();
+}
+```
+
+This avoids pushing values that would be immediately popped.
+But the simple "push then pop if oversized" is cleaner,
+handles all edge cases uniformly (including heap.size() < k),
+and the performance difference is negligible --
+both are O(log K) per call.
 
 ---
 
 ### 🧠 Memory of the K Champions Law
 
--   **Min-Heap of size K** = the leaderboard of the top K largest numbers
--   The **heap's top** = the smallest of the top K = the **Kth largest overall**
+-   **Min-Heap of size K** = leaderboard of the top K largest numbers
+-   **Heap's top** = smallest of the top K = the **Kth largest overall**
 -   Use `greater<int>` in C++ `priority_queue` to create a min-heap
--   **Initialization:** process every initial number through `add`
+-   **Constructor:** process every initial number through `add`
 -   **`add(val)`:**
     1. Push `val` into heap
-    2. If `heap.size() > k` → pop the minimum (too weak for top K)
-    3. Return `heap.top()` — the current Kth largest
--   If fewer than K numbers have been seen so far — the heap has fewer than K elements;
-    `heap.top()` is still the Kth largest among what exists
--   **Time:** O(log K) per `add` — push and pop are both O(log K) on a heap of size K
--   **Space:** O(K) — the heap never grows beyond K elements
+    2. If `heap.size() > k` → pop the minimum
+    3. Return `heap.top()`
+-   Heap never exceeds K elements (after each add)
+-   **Time:** O(log K) per `add` -- push/pop on heap of size K
+-   **Space:** O(K) -- the heap
+-   **Edge cases:**
+    -   Fewer than K numbers seen → heap has < K elements, top is still valid
+    -   k = 1 → heap holds only the maximum
+    -   Negative numbers → handled identically
+    -   All same values → heap holds K copies, top = that value
 
 Thus is remembered the saga of **Kth Largest Element in a Stream**,
 where the Analyst stood at the bank of the Endless River
-and maintained a leaderboard of only K champions —
-evicting the weakest the moment a stronger challenger arrived —
+and maintained a leaderboard of only K champions --
+pushing every newcomer into the min-heap,
+expelling the weakest whenever the roster overflowed --
 so that at every instant,
 the Kth largest among all numbers ever seen
-sat quietly and visibly at the very top of the heap,
-ready to be returned in the blink of an eye. 🌊🏆✨
+sat quietly at the very top of the heap,
+ready to be returned
+in the blink of an eye. 🌊🏆✨

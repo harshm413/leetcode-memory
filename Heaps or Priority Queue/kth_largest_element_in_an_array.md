@@ -1,6 +1,6 @@
 ## 🏆⚔️ _The Kth Throne of the Ranked Kingdom: The Kth Largest Element in an Array Saga_
 
-> \_"The Kingdom held a grand ranking ceremony —
+> \_"The Kingdom held a grand ranking ceremony --
 > every warrior assigned to a throne
 > in descending order of strength.
 >
@@ -10,45 +10,34 @@
 > Not the strongest. Not the weakest.
 > The one who is exactly Kth from the top.'**
 >
-> The naive approach was clear —
-> sort all warriors from strongest to weakest
-> and return the one at position K.
-> Correct. But costly — O(N log N) for a full sort.
+> Two paths existed:
 >
-> Two wiser paths existed:
->
-> **Path One — The Min-Heap of K Champions:**
+> **Path One -- The Min-Heap of K Champions:**
 > Maintain a leaderboard of exactly K strongest warriors.
 > The weakest among them is the Kth largest overall.
-> O(N log K) — better when K is small.
+> O(N log K).
 >
-> **Path Two — QuickSelect:**
+> **Path Two -- QuickSelect:**
 > The genius of partial sorting.
-> Do not sort the entire array.
 > Pick a pivot. Partition.
-> If the pivot lands at rank K — done.
-> If not — recurse only into the half that contains rank K.
-> O(N) average — the fastest possible.
+> If the pivot lands at rank K -- done.
+> If not -- recurse only into the half that contains rank K.
+> O(N) average.
 >
-> The Kingdom learned both paths —
-> for different battles call for different weapons.
-> The heap for streaming data.
-> QuickSelect for a fixed array.
->
-> Both crowned the same warrior on the Kth throne."\_
+> The Kingdom learned both paths --
+> for different battles call for different weapons."\_
 
 ---
 
 This is the saga of **Kth Largest Element in an Array**.
 
-You are given an integer array `nums` and an integer `k`.
+Given an integer array `nums` and an integer `k`:
 
-Return the **Kth largest element** in the array.
-
-Note: it is the Kth largest in **sorted order**, not the Kth distinct element.
+-   Return the **Kth largest element** in the array.
+-   It is the Kth largest in **sorted order**, not the Kth distinct element.
 
 ```
-Input:  nums = [3,2,1,5,6,4],  k = 2
+Input:  nums = [3,2,1,5,6,4], k = 2
 Output: 5
 
 Input:  nums = [3,2,3,1,2,4,5,5,6], k = 4
@@ -57,30 +46,32 @@ Output: 4
 
 ---
 
-## 🧠 The Oracle's Core Insight — Two Weapons for One Crown
+## 🧠 Path One -- Min-Heap of Size K
 
-Both approaches find the same answer via different philosophies:
+The same pattern as Kth Largest in a Stream:
+
+> **The Kth largest overall
+> is the SMALLEST element among the top K largest.**
+
+A min-heap of size K keeps the weakest champion on top.
+That weakest champion IS the Kth largest.
 
 ```
-Min-Heap of size K:
-  → Build a window of the K largest seen so far
-  → Heap top is always the Kth largest
-  → O(N log K) time,  O(K) space
+For each element:
+  Push into heap.
+  If heap.size() > k → pop the minimum.
 
-QuickSelect:
-  → Partition around a pivot
-  → Pivot lands at its final sorted position
-  → If position == (N-K) from left → it IS the Kth largest
-  → Recurse only into the relevant half
-  → O(N) average time,  O(1) extra space
+After all elements: heap.top() = Kth largest.
 ```
 
-We will implement and explain **both** —
-because understanding both is the mark of mastery.
+```
+Time:  O(N log K) -- N pushes, each O(log K)
+Space: O(K)
+```
 
 ---
 
-### 📜 The Scroll of the Ranked Kingdom
+### 📜 The Scroll of the Min-Heap Path
 
 ```cpp
 #include <iostream>
@@ -92,24 +83,7 @@ using namespace std;
 
 ---
 
-### 🧱 The Structure of the Problem
-
-```cpp
-// The Kth largest in descending order
-// = the (N-K)th smallest in ascending order (0-indexed)
-// QuickSelect finds the element that would sit at index (N-K)
-// after full sorting.
-```
-
-This equivalence is the key to QuickSelect:
-finding the Kth **largest** is the same as finding
-the element at index `n - k` in the **ascending** sorted order.
-
----
-
-## ⚗️ Path One — The Min-Heap of K Champions
-
-_The same leaderboard pattern from Kth Largest in a Stream_
+## ⚗️ The Min-Heap Ritual
 
 ```cpp
 int findKthLargest_heap(vector<int>& nums, int k) {
@@ -125,68 +99,64 @@ int findKthLargest_heap(vector<int>& nums, int k) {
 }
 ```
 
-The Min-Heap maintained a rolling leaderboard of K strongest warriors.
+Every element was pushed. When the heap exceeded K,
+the weakest was expelled.
 
-Every warrior was pushed in.
-When the heap exceeded K — the weakest was expelled.
-After all warriors were evaluated —
-the heap held exactly the K strongest,
-with the weakest of them — the Kth largest — sitting at the top.
-
-Return `minHeap.top()`.
-
-Simple. Clean. Already mastered in the Stream saga.
+After all elements, the heap held exactly the K largest.
+The top -- the smallest of those K -- was the Kth largest.
 
 ---
 
-## ⚔️ Path Two — QuickSelect: The Partial Sort Champion
+## 🧠 Path Two -- QuickSelect: The Partial Sort Champion
 
-_Find rank without sorting everything_
+QuickSelect finds the element at a specific rank
+**without sorting the entire array**.
 
-### The Core Idea: The Partition
+The Kth largest in descending order
+= the element at index `n - k` in ascending sorted order.
+
+```
+Target index = n - k
+
+Partition around a pivot.
+If pivot lands at targetIdx → found it.
+If pivot < targetIdx → recurse right.
+If pivot > targetIdx → recurse left.
+```
+
+Each recursion discards half the remaining elements (on average).
+
+```
+Time:  O(N) average, O(N²) worst case
+Space: O(1) extra (in-place partitioning)
+```
+
+---
+
+## ⚔️ The Partition -- Heart of QuickSelect
 
 ```cpp
 int partition(vector<int>& nums, int left, int right) {
     int pivot = nums[right];
     int storeIdx = left;
-```
 
-A **pivot** was chosen — the rightmost element.
-
-`storeIdx` tracked where the pivot would eventually land —
-its correct final position in the sorted array.
-
----
-
-```cpp
     for (int i = left; i < right; i++) {
         if (nums[i] <= pivot) {
             swap(nums[i], nums[storeIdx]);
             storeIdx++;
         }
     }
-```
-
-Every element smaller than or equal to the pivot
-was swapped to the left portion.
-
-`storeIdx` advanced each time.
-
-After the loop, everything to the left of `storeIdx`
-was ≤ pivot. Everything to the right was > pivot.
-
----
-
-```cpp
     swap(nums[storeIdx], nums[right]);
     return storeIdx;
 }
 ```
 
-The pivot was placed at its final position — `storeIdx`.
+The pivot (rightmost element) was placed at its **final sorted position**.
 
-This was the pivot's **true rank** in the sorted array —
-exactly how many elements were smaller or equal to it on its left.
+Everything to the left of `storeIdx` was <= pivot.
+Everything to the right was > pivot.
+
+`storeIdx` was the pivot's true rank in the sorted array.
 
 > _"The pivot asks nothing more.
 > It has found its rightful throne.
@@ -195,77 +165,43 @@ exactly how many elements were smaller or equal to it on its left.
 
 ---
 
-### The QuickSelect Recursion
+## 🔮 The QuickSelect Recursion
 
 ```cpp
 int quickSelect(vector<int>& nums, int left, int right, int targetIdx) {
     if (left == right) return nums[left];
 
     int pivotIdx = partition(nums, left, right);
-```
 
-`targetIdx` was the index we sought — `n - k` (the Kth largest in ascending order).
-
-After partitioning, the pivot landed at `pivotIdx`.
-
----
-
-```cpp
     if (pivotIdx == targetIdx) {
         return nums[pivotIdx];
-    }
-```
-
-**If the pivot landed exactly at `targetIdx`** —
-the oracle had found the Kth largest. Return it immediately.
-
----
-
-```cpp
-    else if (pivotIdx < targetIdx) {
+    } else if (pivotIdx < targetIdx) {
         return quickSelect(nums, pivotIdx + 1, right, targetIdx);
-    }
-```
-
-**If the pivot landed too far left** —
-the Kth largest is in the right half.
-Recurse right.
-
----
-
-```cpp
-    else {
+    } else {
         return quickSelect(nums, left, pivotIdx - 1, targetIdx);
     }
 }
 ```
 
-**If the pivot landed too far right** —
-the Kth largest is in the left half.
-Recurse left.
+**Pivot at target** → found the Kth largest. Return it.
+**Pivot too far left** → target is in the right half. Recurse right.
+**Pivot too far right** → target is in the left half. Recurse left.
 
 > _"At every step, half the battlefield is abandoned.
-> Only the half that contains the target rank
-> is explored.
-> The rest of the warriors do not matter."_
+> Only the half containing the target rank is explored."_
 
 ---
 
-### The Main Entry Point for QuickSelect
+## 🏁 The Entry Point
 
 ```cpp
 int findKthLargest_quickselect(vector<int>& nums, int k) {
     int n = nums.size();
-    int targetIdx = n - k;
-    return quickSelect(nums, 0, n - 1, targetIdx);
+    return quickSelect(nums, 0, n - 1, n - k);
 }
 ```
 
-The Kth largest in descending order
-is at index `n - k` in ascending sorted order.
-
-QuickSelect was launched with the full range
-and the target index.
+Kth largest in descending = index `n - k` in ascending.
 
 ---
 
@@ -274,72 +210,130 @@ and the target index.
 ```cpp
 int main() {
     vector<int> nums1 = {3, 2, 1, 5, 6, 4};
-    cout << findKthLargest_heap(nums1, 2) << endl;        // expected: 5
+    cout << findKthLargest_heap(nums1, 2) << endl;        // 5
 
     vector<int> nums2 = {3, 2, 1, 5, 6, 4};
-    cout << findKthLargest_quickselect(nums2, 2) << endl;  // expected: 5
+    cout << findKthLargest_quickselect(nums2, 2) << endl;  // 5
 
     vector<int> nums3 = {3,2,3,1,2,4,5,5,6};
-    cout << findKthLargest_quickselect(nums3, 4) << endl;  // expected: 4
+    cout << findKthLargest_heap(nums3, 4) << endl;         // 4
+
     return 0;
 }
 ```
 
+---
+
 **Heap trace for `[3,2,1,5,6,4]`, k=2:**
 
-| Element | Heap After Push | Pop?    | Heap After |
-| ------- | --------------- | ------- | ---------- |
-| 3       | {3}             | No      | {3}        |
-| 2       | {2,3}           | No      | {2,3}      |
-| 1       | {1,2,3}         | Yes → 1 | {2,3}      |
-| 5       | {2,3,5}         | Yes → 2 | {3,5}      |
-| 6       | {3,5,6}         | Yes → 3 | {5,6}      |
-| 4       | {4,5,6}         | Yes → 4 | {5,6}      |
+| Element | Heap after push | Size>2? | Pop | Heap after |
+| ------- | --------------- | ------- | --- | ---------- |
+| 3       | {3}             | No      | --  | {3}        |
+| 2       | {2,3}           | No      | --  | {2,3}      |
+| 1       | {1,2,3}         | Yes     | 1   | {2,3}      |
+| 5       | {2,3,5}         | Yes     | 2   | {3,5}      |
+| 6       | {3,5,6}         | Yes     | 3   | {5,6}      |
+| 4       | {4,5,6}         | Yes     | 4   | {5,6}      |
 
-Heap top = `5` ✓ — the 2nd largest.
+**Answer: heap.top() = 5** ✓
+
+---
 
 **QuickSelect trace for `[3,2,1,5,6,4]`, k=2, targetIdx=4:**
 
-Sorted ascending: `[1,2,3,4,5,6]` — index 4 = `5`.
+Sorted ascending: `[1,2,3,4,5,6]` -- index 4 = `5`.
 
 Partition around pivot `4` (rightmost):
 
--   Elements ≤ 4: `3,2,1,4` → left. Elements > 4: `5,6` → right.
--   Array becomes: `[3,2,1,4,6,5]` or similar, pivot `4` at index 3.
--   pivotIdx=3 < targetIdx=4 → recurse right: `[6,5]`
--   Partition `[6,5]` around pivot `5`: `5` at index 4, `6` at 5.
--   pivotIdx=4 == targetIdx=4 → **return `5`** ✓
+Elements <= 4: `3,2,1,4` → left side. Elements > 4: `5,6` → right side.
+Pivot `4` lands at index 3.
+
+`pivotIdx=3 < targetIdx=4` → recurse right: `[5,6]`.
+
+Partition `[5,6]` around pivot `6`:
+`5` goes left. Pivot `6` at index 5.
+`pivotIdx=5 > targetIdx=4` → recurse left: `[5]`.
+
+Single element → return `5`.
+
+**Answer: 5** ✓
+
+---
+
+**Heap trace for `[3,2,3,1,2,4,5,5,6]`, k=4:**
+
+| Element | Heap after push   | Size>4? | Pop | Heap after    |
+| ------- | ----------------- | ------- | --- | ------------- |
+| 3       | {3}               | No      | --  | {3}           |
+| 2       | {2,3}             | No      | --  | {2,3}         |
+| 3       | {2,3,3}           | No      | --  | {2,3,3}       |
+| 1       | {1,2,3,3}         | No      | --  | {1,2,3,3}     |
+| 2       | {1,2,2,3,3}       | Yes     | 1   | {2,2,3,3}     |
+| 4       | {2,2,3,3,4}       | Yes     | 2   | {2,3,3,4}     |
+| 5       | {2,3,3,4,5}       | Yes     | 2   | {3,3,4,5}     |
+| 5       | {3,3,4,5,5}       | Yes     | 3   | {3,4,5,5}     |
+| 6       | {3,4,5,5,6}       | Yes     | 3   | {4,5,5,6}     |
+
+**Answer: heap.top() = 4** ✓
+
+---
+
+## 🔄 Heap vs QuickSelect -- When to Choose Which
+
+| Min-Heap (O(N log K))             | QuickSelect (O(N) avg)            |
+| --------------------------------- | --------------------------------- |
+| Always O(N log K)                 | O(N) average, O(N²) worst case   |
+| Does not modify the input array   | Modifies the array (in-place)     |
+| Works for streaming data          | Requires the full array upfront   |
+| Simple to implement               | Partition logic is trickier       |
+| Best when K is small              | Best when K is moderate/large     |
+
+**For interviews:** the min-heap is safer (no worst case).
+**For optimal average:** QuickSelect is faster.
+
+---
+
+## ⚠️ QuickSelect Worst Case and Mitigation
+
+If the pivot is always the smallest or largest element,
+QuickSelect degrades to O(N²) -- similar to QuickSort's worst case.
+
+Mitigation strategies:
+-   **Random pivot:** `swap(nums[rand() % (right-left+1) + left], nums[right])`
+    before partitioning. Expected O(N).
+-   **Median of three:** pick median of first, middle, last elements as pivot.
+
+LeetCode's test cases are designed to punish naive pivot selection.
+Always randomize.
 
 ---
 
 ### 🧠 Memory of the Kth Throne Law
 
 **Min-Heap approach:**
-
--   Min-heap of size K — top = Kth largest
+-   Min-heap of size K -- top = Kth largest
 -   Push every element, pop when size > K
 -   O(N log K) time, O(K) space
--   Best for streaming data or small K
 
 **QuickSelect approach:**
-
--   Target index = `n - k` (Kth largest = index n-k in ascending order)
--   Partition around pivot — pivot lands at its final sorted position
+-   Target index = `n - k` (Kth largest = index n-k in ascending)
+-   Partition around pivot -- pivot lands at its final sorted position
 -   If `pivotIdx == targetIdx` → found it
 -   If `pivotIdx < targetIdx` → recurse right
 -   If `pivotIdx > targetIdx` → recurse left
--   O(N) average time, O(1) extra space
--   Best for fixed arrays where in-place modification is allowed
+-   O(N) average, O(N²) worst case, O(1) extra space
+-   **Randomize pivot** to avoid worst case
 
-**The shared insight:**
-
--   Both reduce the problem to maintaining or finding a K-ranked boundary
--   The heap expels the too-weak. QuickSelect abandons the irrelevant half.
+-   **Edge cases:**
+    -   k = 1 → find the maximum
+    -   k = n → find the minimum
+    -   All elements equal → any element is the answer
+    -   Duplicates → both approaches handle them naturally
 
 Thus is remembered the saga of **Kth Largest Element in an Array**,
-where two weapons served one crown —
+where two weapons served one crown --
 the Min-Heap maintaining a rolling leaderboard of K champions,
 and QuickSelect hunting the Kth throne by partitioning
-and abandoning irrelevant halves —
+and abandoning irrelevant halves --
 until the warrior at rank K was revealed
 without ever needing to rank everyone else. 🏆⚔️✨
