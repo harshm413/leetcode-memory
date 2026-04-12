@@ -1,175 +1,276 @@
-## 🌧️🏰 _The Valley That Captured the Storm: The Trapping Rain Water Saga_
+## 🌧️📚 _Filling Valleys Layer by Layer: The Trapping Rain Water (Stack) Saga_
 
-> \*"Across the rugged land stood uneven walls of stone —
-> some tall, some broken, some barely rising above the earth.
+> \_"The Oracle had solved the rain water problem
+> column by column -- measuring the water above each pillar.
 >
-> Then came the storm.
-> Rain fell without mercy.
+> But there was another way to see it:
 >
-> Yet not all water escaped.
-> Some was trapped —
-> held prisoner between greater heights.
+> **Not column by column, but LAYER by LAYER.**
 >
-> The Oracle was commanded:
+> When a taller bar appeared after a valley,
+> it formed a pool with the bar beneath.
+> The pool had a left wall, a bottom, and a right wall.
+> Its water was `width × height` of that horizontal layer.
 >
-> **‘Tell us how much water remains
-> after the storm has passed.’**
+> A **monotonic decreasing stack** tracked the terrain.
+> When a taller bar arrived and popped a shorter one,
+> a horizontal water layer was computed
+> between the new bar and the bar beneath the popped one.
 >
-> She knew the secret:
-> water cannot rise higher than
-> the shorter boundary that holds it."\*
+> Layer by layer, valley by valley,
+> the water accumulated --
+> not from above each pillar,
+> but from the shape of each pool."\_
 
 ---
 
-This is the epic saga of **Trapping Rain Water**.
+This is the saga of **Trapping Rain Water (Monotonic Stack Approach)**.
 
-You are given an array `height`
-where each element represents the elevation of a bar.
+Given an array `height` where `height[i]` is the elevation at position `i`:
 
-Your task:
-
--   Compute how much **rainwater** can be trapped
--   After raining
-
----
-
-## 🧠 The Oracle’s Core Insight — Water is Limited by Boundaries
-
-For any position `i`:
+-   Compute how much water can be trapped after raining.
+-   Uses a **monotonic decreasing stack** to process water horizontally.
 
 ```
-water[i] = min(maxLeft, maxRight) - height[i]
+Input:  [0,1,0,2,1,0,1,3,2,1,2,1]
+Output: 6
+
+Input:  [4,2,0,3,2,5]
+Output: 9
 ```
 
-Where:
+---
 
--   `maxLeft` = tallest wall to the left
--   `maxRight` = tallest wall to the right
+## 🧠 The Oracle's Core Insight -- Horizontal Layers, Not Vertical Columns
 
-But computing these separately for every index
-would be slow.
+The prefix/suffix and two-pointer approaches compute water
+**vertically** -- how much water sits above each column.
 
-Instead, the Oracle chose a wiser ritual.
+The stack approach computes water **horizontally** --
+each time a valley is bounded by two walls,
+the rectangular water layer between them is computed.
+
+The stack holds indices in **decreasing** order of height.
+When a taller bar `i` arrives and pops a shorter bar `bottom`:
+
+```
+left wall  = new stack top (the bar beneath bottom)
+right wall = current bar i
+width      = i - left - 1
+height     = min(height[left], height[i]) - height[bottom]
+water     += width × height
+```
+
+This computes one horizontal slice of the pool.
+Multiple pops at the same `i` compute multiple layers
+stacked on top of each other.
+
+```
+Time:  O(N) -- each index pushed once, popped once
+Space: O(N) -- the stack
+```
 
 ---
 
-## ⚔️ The Two-Watchtower Strategy
-
-_Let the shorter wall decide_
-
-If:
-
--   `leftMax < rightMax` →
-    water trapped depends on `leftMax`
--   Otherwise →
-    depends on `rightMax`
-
-Thus two pointers march inward.
-
----
-
-### 📜 The Scroll of Elevations
+### 📜 The Scroll of the Layered Pools
 
 ```cpp
 #include <iostream>
 #include <vector>
+#include <stack>
 using namespace std;
 ```
 
 ---
 
-## 🌊 The Two-Pointer Rain Ritual
+## ⚔️ The Oracle's Layer-by-Layer Ritual
 
 ```cpp
 int trap(vector<int>& height) {
-    int left = 0;
-    int right = height.size() - 1;
-    int leftMax = 0;
-    int rightMax = 0;
+    stack<int> st;
     int water = 0;
 ```
 
-Two sentinels stand at both ends.
+The Oracle prepared a monotonic decreasing stack of indices
+and a running total of trapped water.
 
 ---
 
-### 🧭 March Toward the Center
+## 🔁 Walk the Wall Bar by Bar
 
 ```cpp
-    while (left < right) {
-        if (height[left] < height[right]) {
+    for (int i = 0; i < (int)height.size(); i++) {
 ```
 
-The smaller boundary determines the limit.
+Each bar was processed left to right.
 
 ---
 
-### 🧱 Process Left Side
+### 💧 Pop Valleys and Compute Water Layers
 
 ```cpp
-            if (height[left] >= leftMax) {
-                leftMax = height[left];
-            } else {
-                water += leftMax - height[left];
-            }
-            left++;
+        while (!st.empty() && height[i] > height[st.top()]) {
+            int bottom = st.top();
+            st.pop();
 ```
 
-If current wall is lower than the tallest seen so far,
-water fills the gap.
+The current bar was taller than the stack's top.
+The top was a valley bottom -- pop it.
 
 ---
 
-### 🧱 Process Right Side
+```cpp
+            if (st.empty()) break;
+```
+
+If the stack is now empty, there's no left wall.
+No pool can form. Break.
+
+---
 
 ```cpp
-        } else {
-            if (height[right] >= rightMax) {
-                rightMax = height[right];
-            } else {
-                water += rightMax - height[right];
-            }
-            right--;
+            int left = st.top();
+            int width = i - left - 1;
+            int h = min(height[left], height[i]) - height[bottom];
+            water += width * h;
         }
+```
+
+The left wall is the new stack top.
+The right wall is the current bar `i`.
+
+**Width** = distance between the two walls (exclusive).
+**Height** = water level minus the valley floor.
+The water level is `min(left wall, right wall)` --
+water can't rise above the shorter wall.
+
+`water += width × h` adds this horizontal layer.
+
+> _"Each pop reveals a valley floor.
+> The walls on either side define the pool.
+> The water fills the gap between the floor
+> and the shorter wall --
+> one horizontal layer at a time."_
+
+---
+
+### 📥 Push the Current Bar
+
+```cpp
+        st.push(i);
     }
     return water;
 }
 ```
 
-Same logic mirrored on the right.
+After all pops, the current bar joined the stack.
+The decreasing order was maintained.
 
 ---
 
-### 🎺 The Trial of the Storm
+### 🎺 The Trial of the Layered Pools
 
 ```cpp
 int main() {
-    vector<int> height = {0,1,0,2,1,0,1,3,2,1,2,1};
-    cout << trap(height) << endl;
-    // expected: 6
+    vector<int> h1 = {0,1,0,2,1,0,1,3,2,1,2,1};
+    cout << trap(h1) << endl; // expected: 6
+
+    vector<int> h2 = {4,2,0,3,2,5};
+    cout << trap(h2) << endl; // expected: 9
+
     return 0;
 }
 ```
 
-The Oracle measured the valley.
+---
 
-Total trapped water: **6 units**
+**Full trace for `[0,1,0,2,1,0,1,3,2,1,2,1]`:**
+
+| i | h[i] | Stack before | Pops & water layers                                    | Water | Stack after |
+|---|------|-------------|--------------------------------------------------------|-------|-------------|
+| 0 | 0    | []          | --                                                     | 0     | [0]         |
+| 1 | 1    | [0]         | pop 0: empty after → break                            | 0     | [1]         |
+| 2 | 0    | [1]         | --                                                     | 0     | [1,2]       |
+| 3 | 2    | [1,2]       | pop 2: left=1, w=3-1-1=1, h=min(1,2)-0=1, +1          | 1     | [1]         |
+|   |      | [1]         | pop 1: empty → break                                  | 1     | [3]         |
+| 4 | 1    | [3]         | --                                                     | 1     | [3,4]       |
+| 5 | 0    | [3,4]       | --                                                     | 1     | [3,4,5]     |
+| 6 | 1    | [3,4,5]     | pop 5: left=4, w=6-4-1=1, h=min(1,1)-0=1, +1          | 2     | [3,4]       |
+|   |      | [3,4]       | h[6]=1 not > h[4]=1 → stop                            | 2     | [3,4,6]     |
+| 7 | 3    | [3,4,6]     | pop 6: left=4, w=7-4-1=2, h=min(1,3)-1=0, +0          | 2     |             |
+|   |      | [3,4]       | pop 4: left=3, w=7-3-1=3, h=min(2,3)-1=1, +3          | 5     | [3]         |
+|   |      | [3]         | pop 3: empty → break                                  | 5     | [7]         |
+| 8 | 2    | [7]         | --                                                     | 5     | [7,8]       |
+| 9 | 1    | [7,8]       | --                                                     | 5     | [7,8,9]     |
+|10 | 2    | [7,8,9]     | pop 9: left=8, w=10-8-1=1, h=min(2,2)-1=1, +1         | 6     | [7,8]       |
+|   |      | [7,8]       | h[10]=2 not > h[8]=2 → stop                           | 6     | [7,8,10]    |
+|11 | 1    | [7,8,10]    | --                                                     | 6     | [7,8,10,11] |
+
+**Answer: 6** ✓
+
+The water was computed in horizontal layers:
++1 at i=3, +1 at i=6, +3 at i=7 (a wide layer), +1 at i=10.
 
 ---
 
-### 🧠 Memory of the Storm Law
+**Trace for `[4, 2, 0, 3, 2, 5]`:**
 
--   Use two pointers
--   Track `leftMax` and `rightMax`
--   Move the smaller boundary
--   Add trapped water locally
--   **Time:** O(n)
--   **Space:** O(1)
+| i | h[i] | Pops & water layers                                         | Water | Stack after |
+|---|------|-------------------------------------------------------------|-------|-------------|
+| 0 | 4    | --                                                          | 0     | [0]         |
+| 1 | 2    | --                                                          | 0     | [0,1]       |
+| 2 | 0    | --                                                          | 0     | [0,1,2]     |
+| 3 | 3    | pop 2: left=1, w=3-1-1=1, h=min(2,3)-0=2, +2               | 2     |             |
+|   |      | pop 1: left=0, w=3-0-1=2, h=min(4,3)-2=1, +2               | 4     | [0,3]       |
+| 4 | 2    | --                                                          | 4     | [0,3,4]     |
+| 5 | 5    | pop 4: left=3, w=5-3-1=1, h=min(3,5)-2=1, +1               | 5     |             |
+|   |      | pop 3: left=0, w=5-0-1=4, h=min(4,5)-3=1, +4               | 9     | [0]         |
+|   |      | pop 0: empty → break                                       | 9     | [5]         |
 
-Thus is remembered the saga of
-**Trapping Rain Water**,
-where the Oracle reads the terrain not by counting rain,
-but by understanding walls —
-knowing that water rests only
-where greater heights
-stand guard on both sides. 🌧️✨
+**Answer: 9** ✓
+
+Two major pools: one at i=3 (two layers) and one at i=5 (two layers).
+
+---
+
+## 🔍 Horizontal vs Vertical -- Same Answer, Different View
+
+| Vertical (Prefix/Two Pointers)    | Horizontal (Stack)                |
+| --------------------------------- | --------------------------------- |
+| Water above each column           | Water in each pool layer          |
+| `min(maxL, maxR) - h[i]` per col  | `width × h` per layer            |
+| Intuitive for single columns      | Intuitive for pool shapes         |
+| O(N) time, O(1) or O(N) space    | O(N) time, O(N) space            |
+
+Both decompose the same total water differently.
+The stack approach is useful when you need to think
+about pools as bounded regions rather than individual columns.
+
+---
+
+### 🧠 Memory of the Layered Pool Law
+
+-   **Monotonic decreasing stack** of indices
+-   **When `height[i] > height[st.top()]`:** pop the top as `bottom`
+    -   If stack empty → no left wall → break
+    -   Left wall = new `st.top()`, right wall = `i`
+    -   Width = `i - left - 1`
+    -   Height = `min(height[left], height[i]) - height[bottom]`
+    -   Water += width × height
+-   **Push** current index after all pops
+-   Computes water **layer by layer horizontally**
+-   **Time:** O(N) -- each index pushed once, popped once
+-   **Space:** O(N) -- the stack
+-   **Edge cases:**
+    -   Less than 3 bars → 0
+    -   Strictly decreasing → stack grows, never pops (no water)
+    -   Strictly increasing → each bar pops previous, but no left wall after pop
+
+Thus is remembered the saga of **Trapping Rain Water (Stack)**,
+where the Oracle did not measure water column by column
+but instead filled valleys layer by layer --
+popping each valley floor from the monotonic stack,
+reading the left and right walls,
+computing the horizontal water slice between them --
+until every pool had been filled
+and every layer had been counted. 🌧️📚✨

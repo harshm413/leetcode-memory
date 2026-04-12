@@ -1,165 +1,344 @@
-## 🗺️⚔️ _The Labyrinth of Slashes: The Simplify Path Saga_
+## 📂🧭 _The Pilgrim's True Path: The Simplify Path Saga_
 
-> \*"Within the Ancient Filesystem,
-> paths twisted through directories and shadows —
-> some forward,
-> some backward,
-> some meaningless echoes of the present.
+> \_"In the Kingdom of Directories,
+> paths wound through nested chambers --
+> forward into subdirectories,
+> backward with `..` to the parent,
+> and sometimes nowhere at all with `.` or empty steps.
+>
+> Travelers wrote their journeys as Unix paths --
+> long strings of slashes and names,
+> riddled with redundant slashes,
+> pointless current-directory dots,
+> and parent-directory retreats.
 >
 > The Oracle was commanded:
 >
-> **‘Simplify this absolute path.
-> Remove confusion.
-> Resolve every dot and double dot.
-> Return the true canonical route.’**
+> **'Given an absolute Unix path,
+> simplify it to its canonical form --
+> no trailing slashes, no double slashes,
+> no `.` or `..` cluttering the way.
+> Just the true path from root to destination.'**
 >
-> In this labyrinth:
+> The Oracle reached for a stack.
 >
-> `.` meant _stay where you are_ > `..` meant _step back one chamber_
-> multiple `/` meant nothing more than one
+> She would split the path by `/`,
+> process each component one by one:
 >
-> The Oracle knew she must walk carefully —
-> remembering where she had been,
-> stepping back only when allowed."\*
+> **A real directory name → push it deeper.**
+> **`..` → go back one level (pop).**
+> **`.` or empty → ignore, stay where you are.**
+>
+> When the walk was done,
+> the stack held the true path --
+> each entry a directory from root to destination.
+> Join them with `/` and prepend the root slash."\_
 
 ---
 
-This is the epic saga of **Simplify Path**.
+This is the saga of **Simplify Path**.
 
-You are given a string `path`, representing an **absolute Unix-style file path**.
+Given an **absolute Unix path** string `path`,
+return the simplified **canonical path**.
 
-Your task:
+Rules of canonical form:
+-   Starts with a single `/`.
+-   Directories separated by a single `/`.
+-   No trailing `/` (unless it's the root `/`).
+-   No `.` (current directory) or `..` (parent) in the result.
+-   `..` moves up one directory (if possible -- root has no parent).
 
--   Return the **simplified canonical path**
--   Follow these rules:
+```
+Input:  "/home/"
+Output: "/home"
 
-    -   `"."` → ignore
-    -   `".."` → go up one directory (if possible)
-    -   Multiple `/` → treated as single `/`
-    -   Result must start with `/`
-    -   No trailing `/` (unless root)
+Input:  "/home//foo/"
+Output: "/home/foo"
+
+Input:  "/home/user/Documents/../Pictures"
+Output: "/home/user/Pictures"
+
+Input:  "/../"
+Output: "/"
+
+Input:  "/home/../../.."
+Output: "/"
+```
 
 ---
 
-## 🧠 The Oracle’s Core Insight — Stack of Directories
+## 🧠 The Oracle's Core Insight -- Split, Filter, Stack
 
-The Oracle realized:
+The path is a sequence of components separated by `/`.
 
--   Every valid directory entered must be remembered
--   `".."` removes the most recent valid directory
--   `"."` and empty segments must be ignored
+Split by `/` and process each component:
 
-This is the perfect use of a **stack**.
+```
+""   (empty, from double slashes)  → ignore
+"."  (current directory)           → ignore
+".." (parent directory)            → pop from stack (go up one level)
+anything else                      → push onto stack (enter directory)
+```
+
+After processing all components, the stack holds
+the directories from root to destination in order.
+
+Join them with `/` and prepend `/` for the root.
+
+```
+Time:  O(N) -- split and process each component once
+Space: O(N) -- the stack and the split tokens
+```
 
 ---
 
-## ⚔️ The Oracle’s Directory Stack Ritual
+### 📜 The Scroll of the Directory Kingdom
+
+```cpp
+#include <iostream>
+#include <string>
+#include <stack>
+#include <sstream>
+using namespace std;
+```
+
+`sstream` provides `getline` with a delimiter --
+the cleanest way to split a string by `/` in C++.
+
+---
+
+## ⚔️ The Oracle's Path-Simplifying Ritual
 
 ```cpp
 string simplifyPath(string path) {
-    vector<string> st;
-    string curr;
+    stack<string> st;
+    stringstream ss(path);
+    string token;
 ```
 
-The stack stored valid directories.
+The Oracle prepared:
+-   `st` -- a stack of directory names (the true path).
+-   `ss` -- a string stream wrapping the input path.
+-   `token` -- each component extracted by splitting on `/`.
 
 ---
 
-### 🌊 Walk Through the Path
+## 🔁 Split by `/` and Process Each Token
 
 ```cpp
-    for (int i = 0; i <= path.size(); i++) {
-        if (i == path.size() || path[i] == '/') {
+    while (getline(ss, token, '/')) {
 ```
 
-Each slash marked the end of a segment.
+`getline(ss, token, '/')` split the path at every `/`.
+
+For `"/home//foo/"`, the tokens would be:
+`""`, `"home"`, `""`, `"foo"`, `""`.
+
+Empty tokens came from leading `/`, trailing `/`, and double `//`.
+All were harmless -- the Oracle simply ignored them.
 
 ---
 
-### 📁 Process Each Segment
+### 🚫 Empty or `.` -- Ignore
 
 ```cpp
-            if (curr == "..") {
-                if (!st.empty()) st.pop_back();
+        if (token == "" || token == ".") {
+            continue;
+        }
+```
+
+Empty strings (from extra slashes) and `.` (current directory)
+meant "stay where you are." No action needed.
+
+---
+
+### ⬆️ `..` -- Go Up One Level
+
+```cpp
+        else if (token == "..") {
+            if (!st.empty()) {
+                st.pop();
             }
-            else if (!curr.empty() && curr != ".") {
-                st.push_back(curr);
-            }
-            curr.clear();
+        }
 ```
 
-Rules applied:
+`..` meant "move to the parent directory."
 
--   `".."` → step back
--   valid name → step forward
--   `"."` or empty → ignore
+If the stack had entries -- pop the top (leave the current directory).
+If the stack was empty -- we were already at root.
+Root has no parent. Do nothing.
+
+> _"You cannot climb above the sky.
+> At the root, `..` is silence."_
 
 ---
 
-### 🔤 Build Segment Name
+### 📁 Directory Name -- Go Deeper
 
 ```cpp
-        } else {
-            curr += path[i];
+        else {
+            st.push(token);
         }
     }
 ```
 
-Characters between slashes formed directory names.
+Any other token was a real directory name.
+Push it onto the stack -- the pilgrim descended one level deeper.
 
 ---
 
-### 🏁 Reconstruct the True Path
+## 🏁 Build the Canonical Path
 
 ```cpp
-    string result = "/";
-    for (int i = 0; i < st.size(); i++) {
-        result += st[i];
-        if (i != st.size() - 1) result += "/";
+    string result = "";
+    while (!st.empty()) {
+        result = "/" + st.top() + result;
+        st.pop();
     }
-    return result;
+    return result.empty() ? "/" : result;
 }
 ```
 
-The Oracle rebuilt the path
-from the stack of truth.
+The Oracle drained the stack to build the final path.
+
+Since a stack gives elements in reverse order (LIFO),
+each popped directory was prepended to the result:
+`"/" + top + result`.
+
+This built the path from deepest directory back to root.
+
+If the result was empty -- the pilgrim ended at root.
+Return `"/"`.
 
 ---
 
-### 🎺 The Trial of the Labyrinth
+### 🎺 The Trial of the Winding Paths
 
 ```cpp
 int main() {
-    string path = "/home//foo/../bar/./baz/";
-    cout << simplifyPath(path) << endl;
-    // expected: "/home/bar/baz"
+    cout << simplifyPath("/home/")                        << endl; // /home
+    cout << simplifyPath("/home//foo/")                   << endl; // /home/foo
+    cout << simplifyPath("/home/user/Documents/../Pictures") << endl; // /home/user/Pictures
+    cout << simplifyPath("/../")                          << endl; // /
+    cout << simplifyPath("/home/../../..")                << endl; // /
+    cout << simplifyPath("/a/./b/../../c/")               << endl; // /c
     return 0;
 }
 ```
 
-The Oracle removed:
+---
 
--   redundant slashes
--   `"."`
--   stepped back for `".."`
+**Full trace for `"/home/user/Documents/../Pictures"`:**
 
-And revealed the true path.
+**Split tokens:** `""`, `"home"`, `"user"`, `"Documents"`, `".."`, `"Pictures"`
+
+| Token       | Action                | Stack after                    |
+| ----------- | --------------------- | ------------------------------ |
+| `""`        | Ignore (empty)        | []                             |
+| `"home"`    | Push                  | [home]                         |
+| `"user"`    | Push                  | [home, user]                   |
+| `"Documents"` | Push                | [home, user, Documents]        |
+| `".."`      | Pop (Documents)       | [home, user]                   |
+| `"Pictures"` | Push                 | [home, user, Pictures]         |
+
+**Build:** `/home/user/Pictures` ✓
+
+The `..` after `Documents` retreated one level,
+then `Pictures` entered as a sibling of `Documents`.
 
 ---
 
-### 🧠 Memory of the Labyrinth Law
+**Full trace for `"/home/../../.."`:**
 
--   Split by `/`
--   Use stack for valid directories
--   `".."` → pop if possible
--   `"."` and empty → ignore
--   Rebuild final path
--   **Time:** O(n)
--   **Space:** O(n)
+**Split tokens:** `""`, `"home"`, `".."`, `".."`, `".."`
+
+| Token    | Action              | Stack after |
+| -------- | ------------------- | ----------- |
+| `""`     | Ignore              | []          |
+| `"home"` | Push                | [home]      |
+| `".."`   | Pop (home)          | []          |
+| `".."`   | Stack empty → skip  | []          |
+| `".."`   | Stack empty → skip  | []          |
+
+**Build:** result is empty → return `"/"` ✓
+
+Three `..` but only one directory to leave.
+The extra `..` at root were silently ignored.
+
+---
+
+**Full trace for `"/a/./b/../../c/"`:**
+
+**Split tokens:** `""`, `"a"`, `"."`, `"b"`, `".."`, `".."`, `"c"`, `""`
+
+| Token  | Action         | Stack after |
+| ------ | -------------- | ----------- |
+| `""`   | Ignore         | []          |
+| `"a"`  | Push           | [a]         |
+| `"."`  | Ignore (stay)  | [a]         |
+| `"b"`  | Push           | [a, b]      |
+| `".."` | Pop (b)        | [a]         |
+| `".."` | Pop (a)        | []          |
+| `"c"`  | Push           | [c]         |
+| `""`   | Ignore         | [c]         |
+
+**Build:** `/c` ✓
+
+---
+
+**Trace for `"/home//foo/"`:**
+
+**Split tokens:** `""`, `"home"`, `""`, `"foo"`, `""`
+
+| Token    | Action | Stack after   |
+| -------- | ------ | ------------- |
+| `""`     | Ignore | []            |
+| `"home"` | Push   | [home]        |
+| `""`     | Ignore | [home]        |
+| `"foo"`  | Push   | [home, foo]   |
+| `""`     | Ignore | [home, foo]   |
+
+**Build:** `/home/foo` ✓
+
+Double slashes produced empty tokens -- all ignored.
+
+---
+
+## 🔍 Edge Case: `..` as a Directory Name?
+
+In this problem, `..` always means "parent directory."
+But in real Unix, a directory could theoretically be named `...` (three dots).
+
+The problem guarantees only `.` and `..` are special.
+Everything else -- including `...`, `....`, or names with dots --
+is treated as a regular directory name and pushed onto the stack.
+
+---
+
+### 🧠 Memory of the Pilgrim's Path Law
+
+-   **Split** the path by `/` using `getline(ss, token, '/')`
+-   **Process each token:**
+    -   `""` or `"."` → ignore (stay in place)
+    -   `".."` → pop from stack if not empty (go up one level)
+    -   Anything else → push onto stack (enter directory)
+-   **Build result:** drain stack, prepend `"/" + top` to result
+-   **Empty result** → return `"/"` (root)
+-   `..` at root is silently ignored (can't go above root)
+-   **Time:** O(N) -- split and process once
+-   **Space:** O(N) -- stack and tokens
+-   **Edge cases:**
+    -   Multiple `//` → empty tokens, ignored
+    -   Trailing `/` → empty token, ignored
+    -   `..` beyond root → ignored
+    -   `"/"` alone → empty stack → return `"/"`
 
 Thus is remembered the saga of **Simplify Path**,
-where the Oracle walks a tangled filesystem,
-ignoring illusions of stillness,
-stepping back when commanded,
-and rebuilding the one true route —
-a clean path carved through chaos. 🗺️✨
+where the Oracle split a winding Unix path into tokens,
+walked them one by one with a stack of directories --
+pushing real names deeper,
+popping on `..` to retreat,
+ignoring `.` and empty noise --
+until the stack held the true canonical path
+from root to destination,
+free of all redundancy. 📂🧭✨

@@ -1,128 +1,170 @@
-## 🔥📜 _The Scroll of Chosen Warriors: The Next Greater Element I Saga_
+## 🔍🗺️ _The Map of Greater Successors: The Next Greater Element I Saga_
 
-> \*"In the Grand Line of Numbers stood many warriors —
-> strong and weak alike.
+> \_"Two scrolls arrived at the Oracle's chamber.
 >
-> But the Oracle was not asked about all of them.
+> The first scroll, `nums1`, was a subset --
+> a short list of chosen warriors.
 >
-> Instead, she was handed a smaller scroll —
-> a list of **chosen warriors** —
-> and commanded:
+> The second scroll, `nums2`, was the full army --
+> all warriors standing in a line, each unique.
 >
-> **‘For each chosen warrior,
-> reveal the next greater warrior
-> that appears to his right
-> in the greater line.’**
+> The Oracle was commanded:
 >
-> The Oracle knew she must first understand
-> the destiny of **all warriors**,
-> before answering only for the chosen few."\*
+> **'For each warrior in nums1,
+> find their position in nums2,
+> then look to the RIGHT in nums2
+> for the first warrior that is GREATER.
+> If none exists -- return -1.'**
+>
+> The naive approach would search nums2
+> for each element of nums1, then scan rightward.
+> O(N × M) -- too slow.
+>
+> The Oracle devised a two-step ritual:
+>
+> **Step One -- Build a map of next greater elements
+> for EVERY element in nums2 using a monotonic stack.
+> Store the results in a hash map: value → next greater.**
+>
+> **Step Two -- For each element in nums1,
+> simply look up the answer in the map.**
+>
+> One stack pass over nums2.
+> One lookup per element of nums1.
+> O(N + M) total."\_
 
 ---
 
-This is the epic saga of **Next Greater Element I**.
+This is the saga of **Next Greater Element I**.
 
-You are given:
+Given two arrays `nums1` and `nums2` where:
+-   `nums1` is a **subset** of `nums2`.
+-   All elements in `nums2` are **unique**.
 
--   `nums1` → subset of elements (chosen warriors)
--   `nums2` → full array (greater line)
+For each element in `nums1`, find the **next greater element**
+to its right in `nums2`. If none exists, return `-1`.
 
-For each element in `nums1`:
+```
+Input:  nums1 = [4,1,2], nums2 = [1,3,4,2]
+Output: [-1,3,-1]
 
--   Find the **next greater element** in `nums2`
--   If none exists → return `-1`
-
----
-
-## 🧠 The Oracle’s Core Insight — Solve Once, Answer Many
-
-The Oracle realized:
-
--   Instead of searching for each element in `nums1`,
--   Compute the **next greater element for all of `nums2`**
--   Store results in a map
--   Then answer each query instantly
-
-Thus she used:
-
--   A **monotonic decreasing stack**
--   A **hash map** from value → next greater value
+Input:  nums1 = [2,4], nums2 = [1,2,3,4]
+Output: [3,-1]
+```
 
 ---
 
-## ⚔️ The Oracle’s Prophecy Ritual
+## 🧠 The Oracle's Core Insight -- Precompute All Answers in nums2
+
+Instead of searching for each nums1 element individually,
+precompute the next greater element for EVERY element in nums2
+and store it in a hash map.
+
+**Step 1: Monotonic stack on nums2 (right to left)**
+
+Walk nums2 from right to left.
+Maintain a stack of values in decreasing order.
+For each element, pop everything smaller --
+the surviving top is the next greater element.
+
+Store `map[nums2[i]] = next greater` (or -1 if stack empty).
+
+**Step 2: Look up each nums1 element in the map**
+
+```
+Time:  O(N + M) -- N = nums2.size(), M = nums1.size()
+Space: O(N) -- the map + stack
+```
+
+---
+
+### 📜 The Scroll of the Two Scrolls
+
+```cpp
+#include <iostream>
+#include <vector>
+#include <stack>
+#include <unordered_map>
+using namespace std;
+```
+
+---
+
+## ⚔️ Step One -- Build the Next Greater Map from nums2
 
 ```cpp
 vector<int> nextGreaterElement(vector<int>& nums1, vector<int>& nums2) {
-    unordered_map<int, int> nextGreater;
+    unordered_map<int, int> ngeMap;
     stack<int> st;
 ```
 
-The stack would resolve all destinies in `nums2`.
+The Oracle prepared:
+-   `ngeMap` -- maps each value in nums2 to its next greater element.
+-   `st` -- a monotonic decreasing stack of values.
 
 ---
 
-### 🌊 Walk Through the Greater Line
+### 🔁 Walk nums2 Right to Left
 
 ```cpp
-    for (int num : nums2) {
+    for (int i = nums2.size() - 1; i >= 0; i--) {
 ```
 
-Each warrior stepped forward.
+Processing right to left ensures that when we handle element `i`,
+the stack already contains elements to its right.
 
 ---
 
-### 🔥 Resolve Waiting Warriors
+### 🧹 Pop Smaller or Equal Elements
 
 ```cpp
-        while (!st.empty() && num > st.top()) {
-            nextGreater[st.top()] = num;
+        while (!st.empty() && st.top() <= nums2[i]) {
             st.pop();
         }
 ```
 
-If the current warrior was stronger,
-he fulfilled the prophecy
-for all weaker warriors waiting.
+Pop everything that is not strictly greater than the current element.
+They can never be the "next greater" for anyone to the left --
+the current element blocks them.
 
 ---
 
-### 🏗️ Add Current Warrior
+### 📝 Record the Answer
 
 ```cpp
-        st.push(num);
+        ngeMap[nums2[i]] = st.empty() ? -1 : st.top();
+```
+
+If the stack is not empty -- the top is the next greater element.
+If empty -- no greater element exists to the right. Record -1.
+
+---
+
+### 📥 Push Current Element
+
+```cpp
+        st.push(nums2[i]);
     }
 ```
 
-Unresolved warriors remained waiting.
+The current element joins the stack.
+It might be the answer for elements further left.
 
 ---
 
-### 📜 Assign -1 to Unfulfilled Warriors
-
-```cpp
-    while (!st.empty()) {
-        nextGreater[st.top()] = -1;
-        st.pop();
-    }
-```
-
-Some warriors would never find a stronger one.
-
----
-
-### 🎯 Answer for the Chosen Scroll
+## 🗺️ Step Two -- Look Up Each nums1 Element
 
 ```cpp
     vector<int> result;
-    for (int num : nums1) {
-        result.push_back(nextGreater[num]);
+    for (int x : nums1) {
+        result.push_back(ngeMap[x]);
     }
     return result;
 }
 ```
 
-The Oracle now answered only for the chosen few.
+For each element in nums1, the answer was already computed.
+One O(1) lookup per element.
 
 ---
 
@@ -130,41 +172,154 @@ The Oracle now answered only for the chosen few.
 
 ```cpp
 int main() {
-    vector<int> nums1 = {4,1,2};
-    vector<int> nums2 = {1,3,4,2};
-
-    vector<int> ans = nextGreaterElement(nums1, nums2);
-
-    for (int x : ans) cout << x << " ";
-    cout << endl;
+    vector<int> n1a = {4, 1, 2}, n2a = {1, 3, 4, 2};
+    auto r1 = nextGreaterElement(n1a, n2a);
+    for (int x : r1) cout << x << " "; cout << endl;
     // expected: -1 3 -1
+
+    vector<int> n1b = {2, 4}, n2b = {1, 2, 3, 4};
+    auto r2 = nextGreaterElement(n1b, n2b);
+    for (int x : r2) cout << x << " "; cout << endl;
+    // expected: 3 -1
+
     return 0;
 }
 ```
 
-The Oracle declared:
+---
 
+**Full trace for nums2 = `[1, 3, 4, 2]`:**
+
+Walking right to left:
+
+| i | nums2[i] | Stack before | Pops          | NGE          | Stack after |
+|---|----------|-------------|---------------|--------------|-------------|
+| 3 | 2        | []          | --            | -1           | [2]         |
+| 2 | 4        | [2]         | pop 2 (2<=4)  | -1           | [4]         |
+| 1 | 3        | [4]         | --            | 4            | [3, 4]      |
+| 0 | 1        | [3, 4]      | --            | 3            | [1, 3, 4]   |
+
+**ngeMap:** `{2: -1, 4: -1, 3: 4, 1: 3}`
+
+**Lookup for nums1 = `[4, 1, 2]`:**
 -   4 → -1
 -   1 → 3
 -   2 → -1
 
-Destiny fulfilled.
+**Answer: [-1, 3, -1]** ✓
 
 ---
 
-### 🧠 Memory of the Chosen Prophecy Law
+**Full trace for nums2 = `[1, 2, 3, 4]`:**
 
--   Use monotonic decreasing stack on `nums2`
--   Build map: value → next greater
--   Default unresolved values → -1
--   Lookup answers for `nums1`
--   **Time:** O(n + m)
--   **Space:** O(n)
+Walking right to left:
 
-Thus is remembered the saga of
-**Next Greater Element I**,
-where the Oracle solves the fate of all warriors once,
-then calmly reveals the destiny
-of the chosen few —
-proving that wisdom lies
-in solving the greater problem first. 🔥✨
+| i | nums2[i] | Stack before | Pops              | NGE | Stack after |
+|---|----------|-------------|-------------------|-----|-------------|
+| 3 | 4        | []          | --                | -1  | [4]         |
+| 2 | 3        | [4]         | --                | 4   | [3, 4]      |
+| 1 | 2        | [3, 4]      | --                | 3   | [2, 3, 4]   |
+| 0 | 1        | [2, 3, 4]   | --                | 2   | [1, 2, 3, 4]|
+
+**ngeMap:** `{4: -1, 3: 4, 2: 3, 1: 2}`
+
+**Lookup for nums1 = `[2, 4]`:**
+-   2 → 3
+-   4 → -1
+
+**Answer: [3, -1]** ✓
+
+Strictly increasing array -- each element's next greater is its immediate successor.
+The stack never pops anything.
+
+---
+
+**Trace for nums2 = `[4, 3, 2, 1]` (strictly decreasing):**
+
+| i | nums2[i] | Pops | NGE | Stack after      |
+|---|----------|------|-----|------------------|
+| 3 | 1        | --   | -1  | [1]              |
+| 2 | 2        | 1    | -1  | [2]              |
+| 1 | 3        | 2    | -1  | [3]              |
+| 0 | 4        | 3    | -1  | [4]              |
+
+**ngeMap:** `{1: -1, 2: -1, 3: -1, 4: -1}`
+
+Every element pops the previous one. No greater element to the right for anyone.
+
+---
+
+**Trace for nums2 = `[2, 1, 3]`:**
+
+| i | nums2[i] | Stack before | Pops     | NGE | Stack after |
+|---|----------|-------------|----------|-----|-------------|
+| 2 | 3        | []          | --       | -1  | [3]         |
+| 1 | 1        | [3]         | --       | 3   | [1, 3]      |
+| 0 | 2        | [1, 3]      | pop 1    | 3   | [2, 3]      |
+
+**ngeMap:** `{3: -1, 1: 3, 2: 3}`
+
+Both `1` and `2` have next greater = `3`.
+
+---
+
+## 🔍 Why Precompute Instead of Search Per Element?
+
+If we searched nums2 for each nums1 element and then scanned right:
+-   Finding the element: O(N) per search (or O(1) with a position map).
+-   Scanning right for the next greater: O(N) worst case.
+-   Total: O(M × N).
+
+Precomputing with a monotonic stack: O(N) for the stack pass + O(M) for lookups = O(N + M).
+
+The map turns repeated work into a one-time investment.
+
+---
+
+## 🔄 Left-to-Right Alternative
+
+You can also walk nums2 left to right:
+
+```cpp
+for (int i = 0; i < nums2.size(); i++) {
+    while (!st.empty() && st.top() < nums2[i]) {
+        ngeMap[st.top()] = nums2[i];
+        st.pop();
+    }
+    st.push(nums2[i]);
+}
+// Remaining stack elements have no next greater → -1
+while (!st.empty()) {
+    ngeMap[st.top()] = -1;
+    st.pop();
+}
+```
+
+Here the stack holds elements waiting for their answer.
+When a greater element arrives, it resolves all smaller ones on the stack.
+Same O(N) complexity, different direction.
+
+---
+
+### 🧠 Memory of the Greater Successor Map Law
+
+-   **Precompute** next greater element for ALL of nums2 using monotonic stack
+-   **Right-to-left:** pop while `st.top() <= nums2[i]`, NGE = st.top() or -1
+-   **Store in hash map:** `ngeMap[value] = next greater element`
+-   **Look up** each nums1 element in the map → O(1) per query
+-   All elements in nums2 are **unique** → map keys are unambiguous
+-   nums1 is a **subset** of nums2 → every lookup is guaranteed to exist
+-   **Time:** O(N + M) -- N for stack pass, M for lookups
+-   **Space:** O(N) -- map + stack
+-   **Edge cases:**
+    -   nums1 = nums2 → answer for every element
+    -   Strictly increasing nums2 → each element's NGE is its successor
+    -   Strictly decreasing nums2 → all answers are -1
+
+Thus is remembered the saga of **Next Greater Element I**,
+where the Oracle did not hunt for each warrior individually
+but instead built a map of every warrior's greater successor --
+walking nums2 once with a monotonic stack,
+recording every answer in a hash map --
+then answering each query from nums1
+with a single glance at the map. 🔍🗺️✨
