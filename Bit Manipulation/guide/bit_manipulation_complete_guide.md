@@ -866,6 +866,9 @@ plus whether `i` itself is odd.
 | Multiply by 2^k          | `n << k`              | n × 2^k                  |
 | Divide by 2^k            | `n >> k`              | n / 2^k (floor)           |
 | Swap a and b             | `a^=b; b^=a; a^=b;`  | No temp variable          |
+| Set rightmost unset bit  | `n \| (n + 1)`        | First 0 from right → 1   |
+| Isolate rightmost unset  | `~n & (n + 1)`        | Mask of first 0 bit      |
+| Min bit flips a→b        | `popcount(a ^ b)`     | Hamming distance          |
 
 ### XOR Properties
 
@@ -902,6 +905,189 @@ XOR from 0 to n:
 
 ---
 
+## 12. Set/Unset the Rightmost UNSET Bit
+
+The rightmost unset bit is the first `0` from the right.
+
+### Set the Rightmost Unset Bit (Turn the first 0 into 1)
+
+```cpp
+n = n | (n + 1);
+```
+
+**Why it works:**
+`n + 1` flips the rightmost `0` to `1` and clears all `1`s below it.
+OR-ing with `n` keeps all original `1`s and sets that first `0`.
+
+```
+n   = 10110 (22)
+n+1 = 10111 (23)
+n | (n+1) = 10111 (23)  ← rightmost 0 (bit 0) is now set
+```
+
+```
+n   = 10111 (23)
+n+1 = 11000 (24)
+n | (n+1) = 11111 (31)  ← rightmost 0 (bit 3) is now set
+```
+
+### Find the Position of the Rightmost Unset Bit
+
+```cpp
+int pos = __builtin_ctz(~n);  // count trailing zeros of ~n
+// OR manually:
+int rightmostUnset = ~n & (n + 1);
+```
+
+`~n` flips all bits — every `0` becomes `1` and vice versa.
+The rightmost `0` in `n` becomes the rightmost `1` in `~n`.
+`~n & (n+1)` isolates that bit.
+
+---
+
+## 13. Division Using Bit Shifts (Without * or /)
+
+To divide `a / b` without using `*` or `/`:
+
+**Core idea:** subtraction is repeated division.
+But subtracting `b` one at a time is O(a/b) — too slow.
+
+**Optimization:** subtract the LARGEST possible `b << k`
+(b multiplied by a power of 2) at each step.
+
+```cpp
+int divide(int dividend, int divisor) {
+    if (dividend == INT_MIN && divisor == -1) return INT_MAX; // overflow
+
+    long long a = abs((long long)dividend);
+    long long b = abs((long long)divisor);
+    int sign = (dividend < 0) ^ (divisor < 0) ? -1 : 1;
+
+    int result = 0;
+    while (a >= b) {
+        long long temp = b;
+        int power = 0;
+        while (a >= (temp << 1)) {
+            temp <<= 1;
+            power++;
+        }
+        a -= temp;
+        result += (1 << power);
+    }
+    return sign * result;
+}
+```
+
+**How it works:**
+
+For `43 / 5`:
+- `5 << 3 = 40` fits in 43. Subtract 40. result += 8. Remaining = 3.
+- `3 < 5` → stop. Answer = 8.
+
+Each outer iteration finds the largest `b × 2^k ≤ a`.
+The inner loop doubles `temp` until it would exceed `a`.
+This is O(log²(a/b)) — much faster than linear subtraction.
+
+**Key bit insight:** `1 << power` is the quotient contribution
+from this step. Shifting is multiplication by powers of 2.
+
+---
+
+## 14. Binary Exponentiation — Pow(x, n)
+
+Compute `x^n` in O(log n) using the binary representation of `n`.
+
+**Core idea:** any exponent can be decomposed into powers of 2.
+
+```
+x^13 = x^(1101 in binary) = x^8 × x^4 × x^1
+```
+
+Instead of multiplying `x` thirteen times (O(n)),
+we square `x` repeatedly and multiply when the corresponding bit is set.
+
+```cpp
+double myPow(double x, int n) {
+    long long power = abs((long long)n);
+    double result = 1.0;
+
+    while (power > 0) {
+        if (power & 1) {        // if current bit is set
+            result *= x;        // multiply into result
+        }
+        x *= x;                 // square x for next bit
+        power >>= 1;            // move to next bit
+    }
+
+    return (n < 0) ? 1.0 / result : result;
+}
+```
+
+**Trace for x=2, n=13 (binary 1101):**
+
+| Step | power (binary) | power & 1 | Action          | result | x       |
+|------|---------------|-----------|-----------------|--------|---------|
+| 1    | 1101          | 1         | result *= 2     | 2      | 4       |
+| 2    | 110           | 0         | skip            | 2      | 16      |
+| 3    | 11            | 1         | result *= 16    | 32     | 256     |
+| 4    | 1             | 1         | result *= 256   | 8192   | 65536   |
+
+`2^13 = 8192` ✓. Only 4 iterations instead of 13.
+
+**Key bit insight:** the bits of `n` tell you WHICH squared values
+to include in the product. `power & 1` checks the current bit.
+`power >>= 1` moves to the next bit. `x *= x` squares for the next level.
+
+**Negative exponent:** `x^(-n) = 1 / x^n`. Compute positive, then invert.
+
+---
+
+## 15. XOR in a Range — XOR from L to R
+
+To compute `XOR(L, L+1, ..., R)` without a loop:
+
+```
+XOR(L to R) = XOR(0 to R) ^ XOR(0 to L-1)
+```
+
+Because `XOR(0 to L-1)` cancels the prefix, leaving only `L to R`.
+
+Using the O(1) formula from Section 9 Pattern 4:
+
+```cpp
+int xorRange(int L, int R) {
+    return xorUpToN(R) ^ xorUpToN(L - 1);
+}
+```
+
+**Example:** XOR(3 to 5) = XOR(0 to 5) ^ XOR(0 to 2)
+
+```
+XOR(0 to 5): 5%4=1 → 1
+XOR(0 to 2): 2%4=2 → 3
+Result: 1 ^ 3 = 2
+Verify: 3^4^5 = 011^100^101 = 010 = 2 ✓
+```
+
+---
+
+## 16. Minimum Bit Flips to Convert Number
+
+The number of bit flips to convert `a` to `b`:
+
+```cpp
+int minBitFlips(int start, int goal) {
+    return __builtin_popcount(start ^ goal);
+}
+```
+
+`start ^ goal` gives `1` at every position where the bits differ.
+Counting those `1`s = number of flips needed.
+
+This is just the **Hamming Distance** between two numbers.
+
+---
+
 ## Final Words
 
 Bit manipulation is not magic — it's pattern recognition.
@@ -918,4 +1104,10 @@ The most important things to internalize:
 5. **Shifts are multiplication/division by powers of 2** — fast and clean.
 
 Master these five, and every bit manipulation problem
-becomes a combination of tools you already know. ⚡🧠
+becomes a combination of tools you already know.
+
+6. **Binary exponentiation** (`x^n` in O(log n)) — scan bits of n, square x each step.
+7. **XOR in a range** — `XOR(L..R) = XOR(0..R) ^ XOR(0..L-1)` — O(1).
+8. **Bit-shift division** — subtract largest `b << k` repeatedly — O(log² n).
+
+Master these eight, and the entire bit manipulation universe is yours. ⚡🧠
