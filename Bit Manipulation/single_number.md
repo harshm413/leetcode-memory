@@ -1,313 +1,314 @@
-## 🕯️⚡ _The Lone Soldier in the Army of Pairs: The Single Number Saga_
+## 🏹⚡ _The Lone Warrior Revealed by Annihilation: The Single Number (Bit Manipulation) Saga_
 
-> \_"In the great Army of Numbers,
-> every soldier had a twin —
-> a perfect duplicate standing beside them.
+> \_"In the Assembly of Numbers,
+> every warrior was sworn to arrive with a twin.
+> Two by two they stood --
+> mirrored, equal, inseparable.
 >
-> Every soldier, except one.
+> Yet the Oracle sensed imbalance.
+> One warrior stood alone,
+> casting a shadow unmatched by any other.
 >
-> One soldier stood alone —
-> no twin, no partner, no echo.
+> She was commanded:
 >
-> The Oracle was commanded:
+> **'Find the lone warrior --
+> the one number that appears exactly once
+> while all others appear exactly twice.
+> Do it in O(N) time and O(1) space.'**
 >
-> **'Find the lone soldier.
-> Every other number appears exactly twice.
-> One number appears exactly once.
-> Find it.'**
+> The Oracle did not reach for a hash map.
+> She did not sort. She did not count.
 >
-> The naive Keeper opened a HashMap —
-> counting every soldier's appearances,
-> then scanning for the one with count of one.
-> Correct — but it used O(N) extra memory.
+> She invoked the **Law of XOR** --
+> the most elegant weapon in all of bit manipulation:
 >
-> A wiser Keeper sorted the army —
-> then walked through, checking every pair.
-> Correct — but O(N log N) time.
+> **XOR every number together.
+> Pairs cancel: x ^ x = 0.
+> The lone survivor remains: 0 ^ x = x.**
 >
-> But the Wisest Keeper knew an ancient magic —
-> a single operation so elegant
-> it required no memory,
-> no sorting,
-> no counting:
->
-> **XOR.**
->
-> 'A number XOR'd with itself becomes zero.
-> A number XOR'd with zero stays itself.
-> XOR the entire army together —
-> all the twins cancel to zero —
-> and what remains is the lone soldier.'
->
-> One pass. No memory. Pure bitwise truth.
-> The lone soldier revealed itself
-> through the silence of cancelled pairs."\_
+> One pass. One variable. Zero extra space.
+> The purest solution to any problem in all of algorithms."\_
 
 ---
 
-This is the saga of **Single Number**.
+This is the saga of **Single Number (Bit Manipulation Approach)**.
 
-You are given a non-empty array `nums` where every element
-appears **exactly twice** except for one element which appears **exactly once**.
+Given a non-empty array `nums` where every element appears
+**exactly twice** except for **one element** which appears **exactly once**:
 
-Your task:
-
--   Find and return the element that appears only once.
+-   Find the single element.
+-   **O(N) time, O(1) space.**
 
 ```
-Input:  [2, 2, 1]         → Output: 1
-Input:  [4, 1, 2, 1, 2]   → Output: 4
-Input:  [1]               → Output: 1
-```
+Input:  [2, 2, 1]
+Output: 1
 
-**Constraints:** Linear time O(N). Constant space O(1).
+Input:  [4, 1, 2, 1, 2]
+Output: 4
+
+Input:  [1]
+Output: 1
+```
 
 ---
 
-## 🧠 The Oracle's Core Insight — XOR: The Magic That Cancels Pairs
+## 🧠 The Oracle's Core Insight -- The Three Laws of XOR
 
-Before the approaches, understand the three laws of XOR:
+XOR has three magical properties that make this problem trivial:
 
 ```
-Law 1:  a ^ a = 0       (a number XOR'd with itself = 0)
-Law 2:  a ^ 0 = a       (a number XOR'd with zero = itself)
-Law 3:  XOR is commutative and associative
-        (order doesn't matter)
+Law 1:  x ^ x = 0       (self-cancellation -- any number XORed with itself vanishes)
+Law 2:  x ^ 0 = x       (identity -- XOR with zero changes nothing)
+Law 3:  XOR is commutative and associative (order doesn't matter)
 ```
 
-Apply these laws to any array where everything appears twice:
+If we XOR every element in the array:
 
 ```
 [4, 1, 2, 1, 2]
 = 4 ^ 1 ^ 2 ^ 1 ^ 2
-= 4 ^ (1^1) ^ (2^2)      ← reorder (Law 3)
-= 4 ^ 0 ^ 0              ← Law 1
-= 4                       ← Law 2
+= (1 ^ 1) ^ (2 ^ 2) ^ 4     (reorder by Law 3)
+= 0 ^ 0 ^ 4                   (cancel pairs by Law 1)
+= 4                            (identity by Law 2)
 ```
 
-All paired soldiers XOR'd with their twins → cancelled to `0`.
-The lone soldier XOR'd with all those zeros → survived unchanged.
+Every number appearing twice cancels itself to 0.
+The lone number has no partner -- it survives.
 
-This is the entire algorithm in one operation.
-One variable. One loop. No memory. O(N) time. O(1) space.
+No hash map. No sorting. No counting.
+Just XOR.
+
+```
+Time:  O(N) -- single pass
+Space: O(1) -- one variable
+```
 
 ---
 
-### 📜 The Scroll of All Approaches
+### 📜 The Scroll of the Twin Assembly
 
 ```cpp
 #include <iostream>
 #include <vector>
-#include <unordered_map>
-#include <unordered_set>
-#include <algorithm>
 using namespace std;
 ```
 
 ---
 
-## ⚡ Approach 1 — XOR: The Wisest Path (Optimal)
-
-_One pass, no memory, pure bitwise magic_
+## ⚔️ The Oracle's XOR Ritual
 
 ```cpp
-int singleNumber_XOR(vector<int>& nums) {
+int singleNumber(vector<int>& nums) {
     int result = 0;
-    for (int num : nums) {
-        result ^= num;
+```
+
+The Oracle began with `result = 0` --
+the neutral element of XOR.
+
+XORing with 0 changes nothing: `x ^ 0 = x`.
+This was the blank slate.
+
+---
+
+## 🔁 XOR Every Element
+
+```cpp
+    for (int x : nums) {
+        result ^= x;
     }
+```
+
+Every number in the assembly was XORed into `result`.
+
+Pairs cancelled: `x ^ x = 0`.
+The lone warrior had no twin to cancel with.
+
+After the loop, only the lone warrior's value remained.
+
+> _"When every twin finds its mirror and vanishes,
+> the one without a twin stands exposed --
+> revealed by the silence of annihilation."_
+
+---
+
+## 🏁 The Survivor Speaks
+
+```cpp
     return result;
 }
 ```
 
-`result` started at `0` — the identity for XOR (Law 2).
-
-Every number was XOR'd into `result` one by one.
-
-Paired soldiers cancelled each other to `0`.
-The lone soldier, with no twin to cancel it,
-survived in `result` at the end.
-
-**Why `result = 0` at start?**
-Because `0 ^ a = a` — starting at zero means
-the first number XOR'd with zero just becomes itself.
-The chain could begin cleanly.
-
-> _"The lone soldier did not fight its battles.
-> It simply outlasted all the cancellations around it."_
-
--   **Time:** O(N)
--   **Space:** O(1)
+The survivor was returned. O(N) time, O(1) space.
+No set. No map. No extra memory. Just XOR.
 
 ---
 
-## 📚 Approach 2 — HashMap: The Honest Counter
-
-_Count appearances, find the one with count 1_
-
-```cpp
-int singleNumber_HashMap(vector<int>& nums) {
-    unordered_map<int, int> count;
-    for (int num : nums) {
-        count[num]++;
-    }
-    for (auto& [num, cnt] : count) {
-        if (cnt == 1) return num;
-    }
-    return -1;
-}
-```
-
-Every soldier was counted in the HashMap.
-After the full march, the Keeper scanned the ledger —
-the soldier with count `1` was the lone one.
-
-Clear. Correct. Easy to understand and explain.
-Used when you are not aware of the XOR trick —
-or when the interviewer asks for the naive approach first.
-
--   **Time:** O(N)
--   **Space:** O(N) — the HashMap grows with unique elements
-
----
-
-## 🎯 Approach 3 — HashSet: The Set Math Path
-
-_Use the identity: 2 × (sum of unique) − sum of all = lone number_
-
-```cpp
-int singleNumber_Set(vector<int>& nums) {
-    unordered_set<int> unique(nums.begin(), nums.end());
-    long long sumSet = 0, sumAll = 0;
-    for (int n : unique) sumSet += n;
-    for (int n : nums)   sumAll += n;
-    return (long long)2 * sumSet - sumAll;
-}
-```
-
-The mathematical identity behind this approach:
-
-```
-If all pairs cancel and one is lone:
-2 × (sum of distinct values) − (sum of all values) = lone value
-
-Example: [4, 1, 2, 1, 2]
-distinct values: {4, 1, 2} → sumSet = 7
-sumAll = 4+1+2+1+2 = 10
-answer = 2×7 − 10 = 14 − 10 = 4 ✓
-```
-
-Elegant math — but uses O(N) memory for the set.
-Useful to know as an alternative insight.
-
--   **Time:** O(N)
--   **Space:** O(N) — the set holds all distinct elements
-
----
-
-## 🗂️ Approach 4 — Sorting: The Visual Path
-
-_Sort, then check pairs — if a number doesn't match its neighbor, it's alone_
-
-```cpp
-int singleNumber_Sort(vector<int>& nums) {
-    sort(nums.begin(), nums.end());
-    for (int i = 0; i < (int)nums.size() - 1; i += 2) {
-        if (nums[i] != nums[i + 1]) return nums[i];
-    }
-    return nums[nums.size() - 1];
-}
-```
-
-After sorting, every pair sat side by side.
-The Keeper walked through the army in steps of 2:
-
--   If a soldier and their immediate neighbor were different —
-    the soldier at position `i` was the lone one. Return it.
--   If they matched — this was a valid pair. Skip both and continue.
--   If the loop completed without finding a mismatch —
-    the lone soldier was the **last element** (all pairs ahead of it matched).
-
-> _"In a sorted world, the lone soldier has no neighbor who matches.
-> The pair beside them belongs to someone else."_
-
--   **Time:** O(N log N) — dominated by sorting
--   **Space:** O(1) — in-place sort (or O(log N) for recursive sort stack)
-
----
-
-### 🎺 The Trial of the Army
+### 🎺 The Trial of the Twin Assembly
 
 ```cpp
 int main() {
-    vector<int> test1 = {2, 2, 1};
-    vector<int> test2 = {4, 1, 2, 1, 2};
-    vector<int> test3 = {1};
+    vector<int> nums1 = {2, 2, 1};
+    cout << singleNumber(nums1) << endl; // expected: 1
 
-    cout << "XOR:     " << singleNumber_XOR(test1) << endl;     // 1
-    cout << "HashMap: " << singleNumber_HashMap(test2) << endl;  // 4
-    cout << "Set:     " << singleNumber_Set(test2) << endl;      // 4
-    cout << "Sort:    " << singleNumber_Sort(test2) << endl;     // 4
-    cout << "Single:  " << singleNumber_XOR(test3) << endl;      // 1
+    vector<int> nums2 = {4, 1, 2, 1, 2};
+    cout << singleNumber(nums2) << endl; // expected: 4
+
+    vector<int> nums3 = {1};
+    cout << singleNumber(nums3) << endl; // expected: 1
+
     return 0;
 }
 ```
 
-**XOR trace for `[4, 1, 2, 1, 2]`:**
+---
 
-| Step | num | result (XOR so far) |
-| ---- | --- | ------------------- |
-| init | —   | `0`                 |
-| 1    | 4   | `0 ^ 4 = 4`         |
-| 2    | 1   | `4 ^ 1 = 5`         |
-| 3    | 2   | `5 ^ 2 = 7`         |
-| 4    | 1   | `7 ^ 1 = 6`         |
-| 5    | 2   | `6 ^ 2 = 4`         |
+**Full trace for `[4, 1, 2, 1, 2]`:**
 
-Result: `4` ✓ — The lone soldier survived through all the cancellations.
+| Step | x | result (before) | result ^= x | Binary            |
+| ---- | - | --------------- | ------------ | ----------------- |
+| 1    | 4 | 0               | 0 ^ 4 = 4   | 000 ^ 100 = 100   |
+| 2    | 1 | 4               | 4 ^ 1 = 5   | 100 ^ 001 = 101   |
+| 3    | 2 | 5               | 5 ^ 2 = 7   | 101 ^ 010 = 111   |
+| 4    | 1 | 7               | 7 ^ 1 = 6   | 111 ^ 001 = 110   |
+| 5    | 2 | 6               | 6 ^ 2 = 4   | 110 ^ 010 = 100   |
 
-**Sort trace for `[4, 1, 2, 1, 2]`:**
+**Answer: 4** ✓
 
-Sorted: `[1, 1, 2, 2, 4]`
-
-| Index | nums[i] | nums[i+1] | Match?    |
-| ----- | ------- | --------- | --------- |
-| 0     | 1       | 1         | ✓ skip    |
-| 2     | 2       | 2         | ✓ skip    |
-| 4     | 4       | (last)    | loop ends |
-
-Return last element: `4` ✓
+The `1`s cancelled (steps 2 and 4): `1 ^ 1 = 0`.
+The `2`s cancelled (steps 3 and 5): `2 ^ 2 = 0`.
+Only `4` survived.
 
 ---
 
-### 🧠 Memory of All Four Approaches
+**Full trace for `[2, 2, 1]`:**
 
-| Approach | Time       | Space | Key Idea                                         |
-| -------- | ---------- | ----- | ------------------------------------------------ |
-| **XOR**  | O(N)       | O(1)  | `a^a=0`, `a^0=a` — pairs cancel, lone survives   |
-| HashMap  | O(N)       | O(N)  | Count frequencies, find count == 1               |
-| Set+Math | O(N)       | O(N)  | `2×sumUnique − sumAll = lone`                    |
-| Sort     | O(N log N) | O(1)  | Sort then walk pairs, first mismatch is the lone |
+| Step | x | result ^= x |
+| ---- | - | ------------ |
+| 1    | 2 | 0 ^ 2 = 2   |
+| 2    | 2 | 2 ^ 2 = 0   |
+| 3    | 1 | 0 ^ 1 = 1   |
 
-**The interview answer order:**
+**Answer: 1** ✓
 
-1. Mention the naive HashMap approach first (shows you can solve it).
-2. Then reveal the XOR trick (shows you know bit manipulation).
-3. If asked for alternatives — the sort approach demonstrates another O(1) space path.
+The pair of `2`s cancelled completely at step 2. `1` stood alone.
 
-**XOR laws to memorize forever:**
+---
+
+**Trace for `[1]`:**
+
+| Step | x | result ^= x |
+| ---- | - | ------------ |
+| 1    | 1 | 0 ^ 1 = 1   |
+
+**Answer: 1** ✓ -- single element, trivially the lone warrior.
+
+---
+
+**Trace for `[-1, -1, -2]` (negative numbers):**
+
+| Step | x  | result ^= x  |
+| ---- | -- | ------------- |
+| 1    | -1 | 0 ^ -1 = -1  |
+| 2    | -1 | -1 ^ -1 = 0  |
+| 3    | -2 | 0 ^ -2 = -2  |
+
+**Answer: -2** ✓
+
+XOR works identically on negative numbers.
+In two's complement, `-1 ^ -1 = 0` just like `1 ^ 1 = 0`.
+
+---
+
+## 🔍 Why XOR and Not Other Approaches?
+
+### Hash Map Approach -- O(N) time, O(N) space
+
+```cpp
+unordered_set<int> seen;
+for (int x : nums) {
+    if (seen.count(x)) seen.erase(x);
+    else seen.insert(x);
+}
+return *seen.begin();
+```
+
+Works, but uses O(N) extra space. The problem asks for O(1) space.
+
+### Sorting Approach -- O(N log N) time, O(1) space
+
+```cpp
+sort(nums.begin(), nums.end());
+for (int i = 0; i < n - 1; i += 2) {
+    if (nums[i] != nums[i + 1]) return nums[i];
+}
+return nums[n - 1];
+```
+
+Works, but O(N log N) is slower than O(N).
+
+### XOR Approach -- O(N) time, O(1) space ✓
+
+The only approach that achieves both optimal time AND optimal space.
+No data structure. No sorting. Just one variable and one pass.
+
+---
+
+## 🔄 Why Does Order Not Matter?
+
+XOR is **commutative** (`a ^ b = b ^ a`)
+and **associative** (`(a ^ b) ^ c = a ^ (b ^ c)`).
+
+This means the order of elements in the array is irrelevant.
+Whether the twins are adjacent or scattered across the array --
+they will always cancel when XORed together.
 
 ```
-a ^ a = 0
-a ^ 0 = a
-XOR is commutative and associative
+[1, 2, 1] → 1 ^ 2 ^ 1 = (1 ^ 1) ^ 2 = 0 ^ 2 = 2
+[2, 1, 1] → 2 ^ 1 ^ 1 = 2 ^ (1 ^ 1) = 2 ^ 0 = 2
+[1, 1, 2] → 1 ^ 1 ^ 2 = (1 ^ 1) ^ 2 = 0 ^ 2 = 2
 ```
 
-These three laws unlock XOR-based solutions across many problems.
+All produce the same result regardless of arrangement.
+
+---
+
+## 🌐 XOR Beyond Single Number
+
+This XOR-cancellation pattern appears in many problems:
+
+| Problem                  | XOR Application                        |
+| ------------------------ | -------------------------------------- |
+| Single Number            | Pairs cancel, lone survives            |
+| Missing Number           | XOR 0..n with array, missing survives  |
+| Single Number II (×3)    | Bit counting per position (not pure XOR) |
+| Single Number III (two singles) | XOR all, split by differing bit  |
+| Find Duplicate           | XOR indices and values                 |
+
+The single-number XOR trick is the gateway to all of these.
+
+---
+
+### 🧠 Memory of the Annihilation Law
+
+-   **XOR every element:** `result ^= x` for all x in nums
+-   **Pairs cancel:** `x ^ x = 0` -- every duplicate vanishes
+-   **Lone survivor:** `0 ^ x = x` -- the single element remains
+-   **Order irrelevant:** XOR is commutative and associative
+-   **Works on negatives:** two's complement XOR behaves identically
+-   **Start with 0:** the neutral element of XOR
+-   **Time:** O(N) -- single pass
+-   **Space:** O(1) -- one variable
+-   **No hash map, no sorting, no counting** -- pure bit manipulation
+-   **Edge cases:**
+    -   Single element → return it (0 ^ x = x)
+    -   Negative numbers → handled identically
+    -   Large arrays → still O(1) space
 
 Thus is remembered the saga of **Single Number**,
-where the lone soldier survived not through strength —
-but through the silence of cancelled pairs —
-revealed by the ancient XOR magic
-that reduced an entire army of duplicates to zero
-and let the unpaired one speak its name alone. 🕯️⚡✨
+where the Oracle did not search, did not sort, did not count --
+but simply XORed every warrior in the assembly together,
+letting every twin annihilate its mirror,
+until the lone warrior stood alone
+in the silence of perfect cancellation --
+revealed not by what was found,
+but by what refused to vanish. 🏹⚡✨
