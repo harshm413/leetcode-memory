@@ -1,60 +1,87 @@
-## 🚤⚔️ _The Last Ferry Across the Storm: The Boats to Save People Saga_
+## ⛵👥 _The Pairing of Heaviest and Lightest: The Boats to Save People Saga_
 
-> \*"On the Shores of Burdened Souls,
-> people gathered with weights upon their backs —
-> some light as feathers,
-> others heavy with fate.
+> \_"The Oracle was given an array of people's weights and a boat limit.
 >
-> The Oracle was commanded:
+> She was commanded:
 >
-> **‘Save everyone using the fewest boats possible.
-> Each boat can carry at most two people,
-> and their combined weight must not exceed the sacred limit.’**
+> **'Each boat can carry at most TWO people,
+> and the total weight must not exceed the limit.
+> What is the MINIMUM number of boats needed?'**
 >
-> Panic urged haste,
-> but the Oracle chose order.
+> The Oracle sorted the people by weight.
+> Then she used two pointers from opposite ends:
 >
-> She lined the people by weight,
-> placed one sentinel at the lightest,
-> another at the heaviest —
-> and let balance decide who could share a ride."\*
+> **Pair the LIGHTEST with the HEAVIEST.**
+> -   If they fit together → one boat for both. Move both pointers.
+> -   If they don't fit → the heaviest goes alone. Move only right.
+>
+> The heaviest person ALWAYS gets on a boat (alone or paired).
+> The lightest person gets paired IF possible.
+>
+> Greedy + two pointers. Minimize boats."\_
 
 ---
 
-This is the saga of **Boats to Save People**.
+This is the saga of **Boats to Save People (LeetCode 881)**.
 
-You are given:
+Given an array `people` (weights) and integer `limit`:
+-   Each boat carries at most 2 people with total weight ≤ limit.
+-   Return the minimum number of boats.
 
--   an array `people` where `people[i]` is a person’s weight
--   an integer `limit` representing the boat’s maximum capacity
+```
+Input:  people = [1, 2], limit = 3
+Output: 1   (both fit in one boat: 1+2=3 ≤ 3)
 
-Your task:
+Input:  people = [3, 2, 2, 1], limit = 3
+Output: 3   (boat 1: [1,2], boat 2: [2], boat 3: [3])
 
--   Find the **minimum number of boats** needed
--   Each boat can carry **at most two people**
--   The sum of weights in a boat must be `<= limit`
-
----
-
-## 🧠 The Oracle’s Core Insight — Pair Light with Heavy
-
-The Oracle understood:
-
--   The **heaviest person** must go on a boat no matter what
--   The best chance to save a boat is to pair them
-    with the **lightest remaining person**
--   If they can’t pair, the heavy goes alone
-
-Thus she used:
-
--   **Sorting**
--   **Two pointers**: lightest and heaviest
-
-Every decision reduced the problem optimally.
+Input:  people = [3, 5, 3, 4], limit = 5
+Output: 4   (everyone goes alone — no pair fits)
+```
 
 ---
 
-### 📜 The Scroll of Ordered Souls
+## 🧠 The Greedy Insight — Pair Lightest with Heaviest
+
+After sorting, the heaviest person is at the right end.
+They MUST get on a boat — the question is: can anyone join them?
+
+The BEST candidate to pair with the heaviest is the LIGHTEST.
+If even the lightest can't fit with the heaviest,
+then NO ONE can fit with the heaviest. They go alone.
+
+If the lightest CAN fit → pair them. Both are handled. Move both pointers.
+If the lightest CAN'T fit → heaviest goes alone. Move only right.
+
+Either way, `right--` (heaviest is handled).
+If paired, also `left++` (lightest is handled).
+
+> _"The heaviest always boards. The question is: who joins them?
+> The lightest is the best hope. If even the lightest is too heavy —
+> the heaviest sails alone. No one else could have fit either."_
+
+---
+
+## 🧠 Why Pairing Lightest with Heaviest Is Optimal
+
+**Claim:** pairing the lightest with the heaviest (when possible)
+never leads to a worse solution than any other pairing.
+
+**Proof sketch:** suppose the lightest (L) could pair with someone
+other than the heaviest (H). Say L pairs with M (a middle person).
+
+-   L + H ≤ limit (they fit). So this pairing is valid.
+-   If we pair L with M instead, then H must go alone or pair with someone else.
+-   But H is the heaviest — fewer people can pair with H than with M.
+-   Pairing L with H "uses up" L on the hardest-to-pair person.
+-   This frees M to potentially pair with someone else.
+
+Greedy choice: always give the heaviest the best chance of pairing.
+The lightest is that best chance.
+
+---
+
+### 📜 The Scroll of the Pairing
 
 ```cpp
 #include <iostream>
@@ -65,88 +92,202 @@ using namespace std;
 
 ---
 
-## ⚔️ The Oracle’s Two-Sentinel Ferry Ritual
+## ⛵ The Two-Pointer Solution
 
-_One light, one heavy — test the balance_
+### Sort the people
 
 ```cpp
 int numRescueBoats(vector<int>& people, int limit) {
     sort(people.begin(), people.end());
-    int left = 0;
-    int right = people.size() - 1;
+    int left = 0, right = people.size() - 1;
     int boats = 0;
 ```
 
-The people were ordered by weight.
-Two sentinels took position:
-
--   `left` → lightest soul
--   `right` → heaviest soul
+Sort by weight. Lightest at left, heaviest at right.
 
 ---
 
-### 🌊 Launch Boats Until All Are Saved
+### Pair from both ends
 
 ```cpp
     while (left <= right) {
+```
+
+Continue until everyone is on a boat.
+`left <= right` (not `<`) because a single remaining person
+still needs a boat.
+
+---
+
+### Check if lightest and heaviest can share
+
+```cpp
         if (people[left] + people[right] <= limit) {
             left++;
-            right--;
-        } else {
-            right--;
         }
+```
+
+They fit together! The lightest is paired. Move left forward.
+
+If they DON'T fit — the lightest stays (might pair with someone else later).
+Only the heaviest boards.
+
+> _"Can the lightest join the heaviest?
+> If yes — both board. left advances.
+> If no — only the heaviest boards. left stays for the next round."_
+
+---
+
+### Heaviest always boards
+
+```cpp
+        right--;
         boats++;
     }
     return boats;
 }
 ```
 
-At each launch:
+Regardless of whether pairing happened, the heaviest person is handled.
+`right--` always. One boat used. `boats++` always.
 
--   If the lightest and heaviest could share → both boarded
--   Otherwise → the heaviest went alone
--   In both cases → **one boat was consumed**
-
-No boat was wasted.
-No soul left behind.
+The key: `left++` is CONDITIONAL (only if paired).
+`right--` and `boats++` are UNCONDITIONAL (heaviest always leaves).
 
 ---
 
-### 🎺 The Trial of the Stormy Shore
+### 🎺 The Trial of the Pairing
 
 ```cpp
 int main() {
-    vector<int> people = {3, 2, 2, 1};
-    int limit = 3;
+    vector<int> p1 = {1, 2};
+    cout << numRescueBoats(p1, 3) << endl; // expected: 1
 
-    cout << numRescueBoats(people, limit) << endl; // expected: 3
+    vector<int> p2 = {3, 2, 2, 1};
+    cout << numRescueBoats(p2, 3) << endl; // expected: 3
+
+    vector<int> p3 = {3, 5, 3, 4};
+    cout << numRescueBoats(p3, 5) << endl; // expected: 4
+
+    vector<int> p4 = {2, 4, 2, 3, 5, 1};
+    cout << numRescueBoats(p4, 5) << endl; // expected: 3
+
     return 0;
 }
 ```
 
-The Oracle launched:
+---
 
--   Boat 1: `1 + 2`
--   Boat 2: `2`
--   Boat 3: `3`
+**Full trace for people = [3, 2, 2, 1], limit = 3:**
 
-All were saved with **3 boats** — the minimum.
+After sorting: `[1, 2, 2, 3]`
+
+| left | right | people[l] | people[r] | sum | ≤ limit? | Action | boats |
+|------|-------|-----------|-----------|-----|----------|--------|-------|
+| 0 | 3 | 1 | 3 | 4 | > 3 ✗ | right-- only | 1 |
+| 0 | 2 | 1 | 2 | 3 | ≤ 3 ✓ | left++, right-- | 2 |
+| 1 | 1 | 2 | 2 | 4 | > 3 ✗ | right-- only | 3 |
+| 1 | 0 | left>right, stop | | | | | 3 |
+
+**Answer: 3** ✓
+
+Boats: [3 alone], [1+2], [2 alone].
 
 ---
 
-### 🧠 Memory of the Ferry Law
+**Trace for people = [3, 5, 3, 4], limit = 5:**
 
--   Sort the array first
--   Pair the lightest with the heaviest if possible
--   Otherwise, send the heaviest alone
--   Each iteration uses exactly one boat
--   **Time:** O(n log n)
--   **Space:** O(1)
+After sorting: `[3, 3, 4, 5]`
+
+| left | right | people[l] | people[r] | sum | ≤ 5? | Action | boats |
+|------|-------|-----------|-----------|-----|------|--------|-------|
+| 0 | 3 | 3 | 5 | 8 | ✗ | right-- only | 1 |
+| 0 | 2 | 3 | 4 | 7 | ✗ | right-- only | 2 |
+| 0 | 1 | 3 | 3 | 6 | ✗ | right-- only | 3 |
+| 0 | 0 | 3 | 3 | — | single person | right-- | 4 |
+
+**Answer: 4** ✓ (everyone goes alone — no pair fits within limit 5)
+
+---
+
+**Trace for people = [2, 4, 2, 3, 5, 1], limit = 5:**
+
+After sorting: `[1, 2, 2, 3, 4, 5]`
+
+| left | right | people[l] | people[r] | sum | ≤ 5? | Action | boats |
+|------|-------|-----------|-----------|-----|------|--------|-------|
+| 0 | 5 | 1 | 5 | 6 | ✗ | right-- only | 1 |
+| 0 | 4 | 1 | 4 | 5 | ✓ | left++, right-- | 2 |
+| 1 | 3 | 2 | 3 | 5 | ✓ | left++, right-- | 3 |
+| 2 | 2 | left>right after right--, stop | | | | | 3 |
+
+Wait: left=2, right=2. `left <= right` is true. Enter loop.
+people[2] + people[2] = 2+2 = 4 ≤ 5 ✓. left=3, right=1. boats=3.
+Now left > right. Stop.
+
+**Answer: 3** ✓
+
+Boats: [5 alone], [1+4], [2+3]. Optimal pairing.
+
+---
+
+## 🔍 Why At Most 2 People Per Boat?
+
+The problem constrains boats to at most 2 people.
+This is what makes the two-pointer approach work perfectly.
+
+If boats could hold 3+ people, we'd need a different approach
+(bin packing — NP-hard in general). The 2-person limit
+makes it a clean greedy problem.
+
+---
+
+## 🔍 Why Sort First?
+
+Without sorting, we can't efficiently find the best pairing partner.
+Sorting puts the lightest and heaviest at opposite ends,
+enabling the two-pointer greedy approach.
+
+Sorting: O(N log N). Two-pointer pass: O(N). Total: O(N log N).
+
+---
+
+## 🔍 Edge Cases
+
+**Everyone fits alone:** each person ≤ limit. Boats = N (worst case).
+**Everyone pairs:** lightest + heaviest ≤ limit for all pairs. Boats = N/2 (best case).
+**Single person:** 1 boat.
+**All same weight:** if 2×weight ≤ limit → N/2 boats. Otherwise → N boats.
+
+---
+
+## 🔍 The Greedy Two-Pointer Pattern
+
+| Problem | Sort by | Pair logic | Pointer movement |
+|---------|---------|-----------|-----------------|
+| **Boats (this)** | Weight | Lightest + heaviest ≤ limit? | Conditional left, always right |
+| Two Sum II | Already sorted | Sum == target? | Conditional both |
+| Container With Most Water | N/A (indices) | Move shorter | Conditional based on height |
+
+All use two pointers from opposite ends. The "move" logic differs.
+
+---
+
+### 🧠 Memory of the Pairing Law
+
+-   **Sort by weight.** Lightest at left, heaviest at right.
+-   **If `people[left] + people[right] ≤ limit`:** pair them. `left++`.
+-   **Always:** `right--`, `boats++` (heaviest always boards).
+-   **`left++` is conditional.** `right--` and `boats++` are unconditional.
+-   **Why lightest with heaviest:** gives the hardest-to-pair person the best chance.
+-   **At most 2 per boat** — what makes greedy work.
+-   **Time:** O(N log N). **Space:** O(1).
 
 Thus is remembered the saga of **Boats to Save People**,
-where the Oracle calms a storm with order and balance,
-launching each ferry with careful judgment —
-pairing where possible,
-separating where necessary —
-until every soul crosses the water
-and the last boat returns empty beneath a quiet sky. 🚤✨
+where the Oracle sorted the people by weight
+and paired from opposite ends —
+the lightest with the heaviest when possible,
+the heaviest alone when not —
+always boarding the heaviest, conditionally pairing the lightest —
+minimizing boats through greedy pairing
+in a single two-pointer sweep. ⛵👥✨

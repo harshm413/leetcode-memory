@@ -1,51 +1,53 @@
-## 🔗📜 _The Weaving of Two Voices: The Merge Strings Alternately Saga_
+## 🔀🔤 _The Alternating Weave: The Merge Strings Alternately Saga_
 
-> \*"In the Loom of Letters,
-> two voices sought to be heard —
-> each with its own rhythm,
-> each with its own length.
+> \_"The Oracle was given two strings.
 >
-> The Oracle was commanded:
+> She was commanded:
 >
-> **‘Weave the two strings together,
-> taking one character from the first,
-> then one from the second,
-> alternating faithfully —
-> and when one voice falls silent,
-> let the other finish its song.’**
+> **'Merge them by alternating characters.
+> Start with the first string, then the second,
+> then the first, then the second...
+> If one string is longer, append the remaining characters at the end.'**
 >
-> No voice could cut ahead.
-> No order could be broken.
+> `"abc"` + `"pqr"` → `"apbqcr"`.
+> `"ab"` + `"pqrs"` → `"apbqrs"`.
 >
-> Only a careful alternation
-> could produce the final hymn."\*
+> The Oracle used two pointers — one on each string.
+> Take one from the first, one from the second.
+> Alternate. When one runs out, drain the other."\_
 
 ---
 
-This is the saga of **Merge Strings Alternately**.
+This is the saga of **Merge Strings Alternately (LeetCode 1768)**.
 
-You are given two strings `word1` and `word2`.
-Your task:
+Given two strings `word1` and `word2`:
+-   Merge them by alternating characters starting with `word1`.
+-   If one is longer, append the remaining at the end.
 
--   Merge them by taking characters **alternately**
--   Start with `word1`
--   If one string ends earlier, append the rest of the other
+```
+Input:  word1 = "abc", word2 = "pqr"
+Output: "apbqcr"
 
----
+Input:  word1 = "ab", word2 = "pqrs"
+Output: "apbqrs"
 
-## 🧠 The Oracle’s Core Insight — Two Pointers, One Weave
-
-The Oracle realized:
-
--   Each string must be read **left to right**
--   Characters must be taken **one at a time**
--   Two pointers are enough — one for each voice
-
-Thus, she chose a synchronized march.
+Input:  word1 = "abcd", word2 = "pq"
+Output: "apbqcd"
+```
 
 ---
 
-### 📜 The Scroll of Intertwined Words
+## 🧠 The Approach — Two Pointers, Alternate
+
+Two pointers: `i` on word1, `j` on word2.
+At each step, take from word1 (if available), then from word2 (if available).
+Continue until both are exhausted.
+
+Alternatively: use a single index and check bounds.
+
+---
+
+### 📜 The Scroll of the Alternating Weave
 
 ```cpp
 #include <iostream>
@@ -55,99 +57,180 @@ using namespace std;
 
 ---
 
-## ⚔️ The Oracle’s Alternating Weave Ritual
-
-_One step from each voice_
+## 🔀 The Solution — Single Index Approach
 
 ```cpp
 string mergeAlternately(string word1, string word2) {
+    string result = "";
     int i = 0, j = 0;
-    string result;
 ```
-
-Two fingers traced the strings:
-
--   `i` for `word1`
--   `j` for `word2`
 
 ---
 
-### 🎶 Weave While Both Voices Speak
+### Alternate while both have characters
 
 ```cpp
     while (i < word1.size() && j < word2.size()) {
-        result.push_back(word1[i++]);
-        result.push_back(word2[j++]);
+        result += word1[i++];
+        result += word2[j++];
     }
 ```
 
-One character from the first voice,
-then one from the second —
-perfect alternation.
+Take one from word1, one from word2. Both advance.
+This continues until one string is exhausted.
+
+> _"One from the left, one from the right.
+> They weave together, character by character,
+> until one string runs dry."_
 
 ---
 
-### 🧩 Let the Remaining Voice Finish
+### Append remaining from word1
 
 ```cpp
     while (i < word1.size()) {
-        result.push_back(word1[i++]);
-    }
-    while (j < word2.size()) {
-        result.push_back(word2[j++]);
+        result += word1[i++];
     }
 ```
 
-When one voice ended,
-the other was allowed to sing freely.
+If word1 is longer, its remaining characters go at the end.
 
 ---
 
-### 🏁 Return the Final Hymn
+### Append remaining from word2
 
 ```cpp
+    while (j < word2.size()) {
+        result += word2[j++];
+    }
     return result;
 }
 ```
 
-The weave was complete.
+If word2 is longer, its remaining characters go at the end.
+
+Only ONE of these drain loops will execute (or neither if equal length).
 
 ---
 
-### 🎺 The Trial of the Interwoven Voices
+### 🎺 The Trial of the Alternating Weave
 
 ```cpp
 int main() {
-    string word1 = "abc";
-    string word2 = "pqrstu";
-
-    cout << mergeAlternately(word1, word2) << endl;
-    // expected: "apbqcrstu"
+    cout << mergeAlternately("abc", "pqr") << endl;   // expected: apbqcr
+    cout << mergeAlternately("ab", "pqrs") << endl;   // expected: apbqrs
+    cout << mergeAlternately("abcd", "pq") << endl;   // expected: apbqcd
+    cout << mergeAlternately("", "xyz") << endl;       // expected: xyz
+    cout << mergeAlternately("abc", "") << endl;       // expected: abc
     return 0;
 }
 ```
 
-The Oracle produced:
+---
 
-`a p b q c r s t u`
+**Trace for word1 = "ab", word2 = "pqrs":**
 
-Two voices,
-one seamless song.
+```
+Alternate loop:
+  i=0: result += 'a'. j=0: result += 'p'. → "ap"
+  i=1: result += 'b'. j=1: result += 'q'. → "apbq"
+  i=2: i >= word1.size(). Loop ends.
+
+Drain word2:
+  j=2: result += 'r'. → "apbqr"
+  j=3: result += 's'. → "apbqrs"
+```
+
+**Result: "apbqrs"** ✓
 
 ---
 
-### 🧠 Memory of the Weaving Law
+**Trace for word1 = "abcd", word2 = "pq":**
 
--   Use two pointers, one per string
--   Alternate characters while both remain
--   Append remaining characters afterward
--   Order within each string is preserved
--   **Time:** O(n + m)
--   **Space:** O(n + m)
+```
+Alternate loop:
+  'a','p' → "ap"
+  'b','q' → "apbq"
+  j=2: j >= word2.size(). Loop ends.
+
+Drain word1:
+  'c' → "apbqc"
+  'd' → "apbqcd"
+```
+
+**Result: "apbqcd"** ✓
+
+---
+
+**Trace for word1 = "abc", word2 = "pqr" (equal length):**
+
+```
+Alternate loop:
+  'a','p' → "ap"
+  'b','q' → "apbq"
+  'c','r' → "apbqcr"
+  Both exhausted. Loop ends.
+
+No drain needed.
+```
+
+**Result: "apbqcr"** ✓
+
+---
+
+## 🔍 Alternative — Single Loop with Index
+
+```cpp
+string mergeAlternately(string word1, string word2) {
+    string result = "";
+    int n = max(word1.size(), word2.size());
+    for (int i = 0; i < n; i++) {
+        if (i < word1.size()) result += word1[i];
+        if (i < word2.size()) result += word2[i];
+    }
+    return result;
+}
+```
+
+Single loop up to the longer string's length.
+At each index, add from word1 (if exists) then word2 (if exists).
+Cleaner code, same result.
+
+---
+
+## 🔍 Edge Cases
+
+**One string empty:** result = the other string entirely.
+**Equal length:** perfect alternation, no drain needed.
+**One much longer:** alternation for the short part, then drain the rest.
+**Both empty:** result = "".
+
+---
+
+## 🔍 This vs Merge Sorted Arrays
+
+| Aspect | Merge Sorted Arrays | Merge Alternately (this) |
+|--------|--------------------|--------------------------| 
+| Order | Sorted order (compare values) | Strict alternation (no comparison) |
+| Logic | Take the SMALLER | Take from word1 THEN word2 |
+| Drain | Same (append remaining) | Same (append remaining) |
+
+Both use two pointers + drain. The merge logic differs.
+
+---
+
+### 🧠 Memory of the Alternating Weave Law
+
+-   **Two pointers:** `i` on word1, `j` on word2
+-   **Alternate:** take from word1, then word2, repeat
+-   **Drain:** append remaining from whichever is longer
+-   **Single-loop alternative:** iterate to `max(n, m)`, check bounds
+-   **Time:** O(N + M). **Space:** O(N + M) for the result.
 
 Thus is remembered the saga of **Merge Strings Alternately**,
-where the Oracle weaves two voices into one melody,
-never letting one dominate the other —
-until silence claims one,
-and the surviving voice
-carries the song to its end. 🔗✨
+where the Oracle wove two strings together —
+one character from the left, one from the right,
+alternating until one ran out —
+then draining the remainder at the end —
+a simple two-pointer dance
+producing the interleaved result. 🔀🔤✨

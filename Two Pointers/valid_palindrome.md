@@ -1,104 +1,132 @@
-## 🪞📜 _The Trial of Pure Reflection: The Valid Palindrome Saga_
+## 🪞✅ _The Filtered Mirror: The Valid Palindrome Saga_
 
-> \*"In the Hall of Letters,
-> symbols gathered from many tongues —
-> letters and digits stood proud,
-> while spaces and punctuation whispered distractions.
+> \_"The Oracle was given a string with letters, digits, spaces, and punctuation.
 >
-> The Oracle was commanded:
+> She was commanded:
 >
-> **‘Judge whether this inscription
-> reads the same forward and backward —
-> ignoring all noise,
-> and seeing only true characters.’**
+> **'Determine if it is a palindrome,
+> considering only alphanumeric characters
+> and ignoring cases.'**
 >
-> The challenge was not the mirror,
-> but the clutter around it.
+> `"A man, a plan, a canal: Panama"` → after filtering: `"amanaplanacanalpanama"` → palindrome ✓.
 >
-> Thus the Oracle vowed to walk from both ends,
-> filtering truth from noise,
-> until reflection proved harmony…
-> or exposed a lie."\*
+> The Oracle used two pointers from opposite ends.
+> But before comparing, she SKIPPED non-alphanumeric characters
+> and converted to lowercase.
+>
+> Skip. Compare. Skip. Compare.
+> If all comparisons match — palindrome."\_
 
 ---
 
-This is the saga of **Valid Palindrome**.
+This is the saga of **Valid Palindrome (LeetCode 125)**.
 
-You are given a string `s`.
-Your task:
+Given a string `s`:
+-   Return `true` if it's a palindrome after removing non-alphanumeric characters
+    and converting to lowercase.
 
--   Consider **only alphanumeric characters**
--   Ignore **case differences**
--   Determine if the string is a **palindrome**
+```
+Input:  s = "A man, a plan, a canal: Panama"
+Output: true
 
----
+Input:  s = "race a car"
+Output: false   ('r' vs 'c' after filtering)
 
-## 🧠 The Oracle’s Core Insight — Truth Lies Beneath the Noise
-
-The Oracle realized:
-
--   Punctuation, spaces, and symbols must be ignored
--   Letters must be compared **case-insensitively**
--   A palindrome mirrors perfectly **after cleansing**
-
-So she used:
-
--   **Two pointers**
--   One from the left, one from the right
--   Skipping all that is not alphanumeric
+Input:  s = " "
+Output: true   (empty after filtering = palindrome)
+```
 
 ---
 
-### 📜 The Scroll of Cleansed Words
+## 🧠 The Two-Pointer + Skip Approach
+
+Two pointers: `left` at start, `right` at end.
+
+At each step:
+1. **Skip** non-alphanumeric characters from the left.
+2. **Skip** non-alphanumeric characters from the right.
+3. **Compare** the two characters (case-insensitive).
+4. If they don't match → not a palindrome.
+5. If they match → move both inward. Continue.
+
+If all comparisons pass → palindrome.
+
+---
+
+### 📜 The Scroll of the Filtered Mirror
 
 ```cpp
 #include <iostream>
 #include <string>
-#include <cctype>
 using namespace std;
 ```
 
 ---
 
-## ⚔️ The Oracle’s Two-Mirror Ritual
+## 🪞 The Solution
 
-_Cleanse, compare, and converge_
+### Initialize two pointers
 
 ```cpp
 bool isPalindrome(string s) {
-    int left = 0;
-    int right = s.size() - 1;
+    int left = 0, right = s.size() - 1;
 ```
-
-Two mirrors were placed
-at opposite ends of the inscription.
 
 ---
 
-### 🧹 Skip the Noise
+### Walk inward, skipping and comparing
 
 ```cpp
     while (left < right) {
-        while (left < right && !isalnum(s[left])) left++;
-        while (left < right && !isalnum(s[right])) right--;
 ```
-
-The Oracle ignored:
-
--   spaces
--   punctuation
--   symbols
-
-Only true characters were allowed to speak.
 
 ---
 
-### 🪞 Compare Reflections
+### Skip non-alphanumeric from left
+
+```cpp
+        while (left < right && !isalnum(s[left])) {
+            left++;
+        }
+```
+
+`isalnum()` returns true for letters and digits.
+Skip spaces, punctuation, symbols — anything that's not alphanumeric.
+
+The `left < right` guard prevents going past the other pointer.
+
+---
+
+### Skip non-alphanumeric from right
+
+```cpp
+        while (left < right && !isalnum(s[right])) {
+            right--;
+        }
+```
+
+Same skip from the right side.
+
+---
+
+### Compare (case-insensitive)
 
 ```cpp
         if (tolower(s[left]) != tolower(s[right])) {
             return false;
         }
+```
+
+Convert both to lowercase before comparing.
+'A' and 'a' should be treated as equal.
+
+If they don't match — not a palindrome. Return immediately.
+
+---
+
+### Move inward
+
+```cpp
         left++;
         right--;
     }
@@ -106,46 +134,120 @@ Only true characters were allowed to speak.
 }
 ```
 
-If reflections mismatched,
-the inscription failed the trial.
-
-If all matched,
-harmony was confirmed.
+Characters matched. Move both pointers inward. Continue.
+If the loop completes without returning false — it's a palindrome.
 
 ---
 
-### 🎺 The Trial of the Sacred Inscription
+### 🎺 The Trial of the Filtered Mirror
 
 ```cpp
 int main() {
-    string s = "A man, a plan, a canal: Panama";
-    cout << isPalindrome(s) << endl; // expected: 1 (true)
+    cout << boolalpha;
+    cout << isPalindrome("A man, a plan, a canal: Panama") << endl; // true
+    cout << isPalindrome("race a car") << endl;                      // false
+    cout << isPalindrome(" ") << endl;                               // true
+    cout << isPalindrome("0P") << endl;                              // false
     return 0;
 }
 ```
 
-After cleansing, the inscription became:
+---
+
+**Trace for s = "A man, a plan, a canal: Panama":**
 
 ```
-amanaplanacanalpanama
+left=0('A'), right=29('a'): both alnum. tolower: 'a'=='a' ✓. Move.
+left=1(' '): skip. left=2('m').
+right=28('m'): alnum. 'm'=='m' ✓. Move.
+left=3('a'), right=27('a'): 'a'=='a' ✓. Move.
+left=4('n'), right=26('n'): 'n'=='n' ✓. Move.
+... (all match symmetrically) ...
 ```
 
-A perfect mirror.
+**Answer: true** ✓
 
 ---
 
-### 🧠 Memory of the Reflection Law
+**Trace for s = "race a car":**
 
--   Ignore non-alphanumeric characters
--   Compare characters case-insensitively
--   Use two pointers from both ends
--   Skip noise, compare truth
--   **Time:** O(n)
--   **Space:** O(1)
+```
+left=0('r'), right=9('r'): 'r'=='r' ✓.
+left=1('a'), right=8('a'): 'a'=='a' ✓.
+left=2('c'), right=7('c'): 'c'=='c' ✓.
+left=3('e'), right=6(' '): skip right. right=5('a').
+left=3('e'), right=5('a'): 'e' != 'a' ✗. Return false.
+```
+
+**Answer: false** ✓
+
+---
+
+**Trace for s = " ":**
+
+```
+left=0(' '): skip. left=1. left > right (right=0). Loop doesn't execute.
+Return true.
+```
+
+**Answer: true** ✓ (empty after filtering = trivially a palindrome)
+
+---
+
+## 🔍 Why `isalnum` and `tolower`?
+
+**`isalnum(c)`:** returns true if `c` is a letter (a-z, A-Z) or digit (0-9).
+Returns false for spaces, punctuation, symbols.
+
+**`tolower(c)`:** converts uppercase to lowercase. Leaves lowercase and digits unchanged.
+
+These are from `<cctype>`. They handle the "ignore non-alphanumeric and case" requirement.
+
+---
+
+## 🔍 Edge Cases
+
+**All non-alphanumeric:** `",.!@#"` → empty after filtering → true (empty palindrome).
+**Single character:** `"a"` → true.
+**Digits:** `"12321"` → true (digits are alphanumeric).
+**Mixed:** `"0P"` → '0' vs 'p' → false.
+
+---
+
+## 🔍 Alternative — Filter First, Then Check
+
+```cpp
+bool isPalindrome(string s) {
+    string filtered = "";
+    for (char c : s) {
+        if (isalnum(c)) filtered += tolower(c);
+    }
+    int left = 0, right = filtered.size() - 1;
+    while (left < right) {
+        if (filtered[left] != filtered[right]) return false;
+        left++; right--;
+    }
+    return true;
+}
+```
+
+Simpler logic but O(N) extra space. The in-place skip approach is O(1) space.
+
+---
+
+### 🧠 Memory of the Filtered Mirror Law
+
+-   **Two pointers** from opposite ends
+-   **Skip** non-alphanumeric with `isalnum()`
+-   **Compare** case-insensitively with `tolower()`
+-   **Mismatch** → return false immediately
+-   **All match** → return true
+-   **Empty after filtering** → true (trivial palindrome)
+-   **Time:** O(N). **Space:** O(1).
 
 Thus is remembered the saga of **Valid Palindrome**,
-where the Oracle looks past noise and distraction,
-seeking only the essence of characters —
-and by walking toward the center from both ends,
-reveals whether the inscription
-is a true reflection of itself. 🪞✨
+where the Oracle walked from both ends of the string —
+skipping the noise of spaces and punctuation,
+comparing only the letters and digits that mattered,
+ignoring the difference between upper and lower —
+until the filtered mirror was confirmed or denied. 🪞✅✨

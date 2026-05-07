@@ -1,69 +1,76 @@
-## 🪟👑 _The Smallest Window of Destiny: The Minimum Window Substring Saga_
+## 🪟🎯 _The Smallest Embrace: The Minimum Window Substring Saga_
 
-> \*"Within the Grand Scroll lay many letters,
-> scattered, repeating, disguising one another.
+> \_"The Oracle was given two strings: `s` and `t`.
 >
-> The Oracle was commanded:
+> She was commanded:
 >
-> **‘Find the smallest window
-> that contains every required symbol —
-> not just present,
-> but present in the right counts.’**
+> **'Find the smallest substring of s that contains
+> ALL characters of t (including duplicates).'**
 >
-> This was no simple search.
+> If t = "ABC", the window must contain at least one A, one B, one C.
+> If t = "AAB", the window must contain at least two A's and one B.
 >
-> A letter once found was not enough —
-> duplicates mattered,
-> and excess meant nothing.
+> The Oracle used a sliding window with frequency matching:
 >
-> The Oracle knew she must expand with patience
-> and shrink with precision —
-> guarding a window that held **exactly what was needed**,
-> and nothing more."\*
+> **Expand right until the window contains all of t.**
+> **Then shrink left to find the smallest valid window.**
+> **Record the minimum. Continue expanding.**
+>
+> The key tracking: a `have` counter that tells us
+> how many DISTINCT characters have met their required frequency.
+> When `have == need` — the window is valid."\_
 
 ---
 
-This is the saga of **Minimum Window Substring**.
+This is the saga of **Minimum Window Substring (LeetCode 76)**.
 
-You are given:
-
--   a string `s` (the great scroll)
--   a string `t` (the required sigil)
-
-Your task:
-
--   Find the **smallest substring of `s`**
--   That contains **all characters of `t`**
--   Including correct **frequencies**
--   Return `""` if no such window exists
-
----
-
-## 🧠 The Oracle’s Core Insight — Balance Required vs Formed
-
-The Oracle tracked two truths:
-
--   `need[c]` → how many times character `c` is required
--   `window[c]` → how many times `c` appears in the current window
-
-And two sacred counts:
-
--   `required` → number of **distinct** characters in `t`
--   `formed` → how many of those are currently satisfied
-
-Only when:
+Given strings `s` and `t`:
+-   Find the minimum window in `s` that contains all characters of `t`.
+-   If no such window exists, return `""`.
 
 ```
-formed == required
+Input:  s = "ADOBECODEBANC", t = "ABC"
+Output: "BANC"
+
+Input:  s = "a", t = "a"
+Output: "a"
+
+Input:  s = "a", t = "aa"
+Output: ""   (s doesn't have two a's)
 ```
-
-was the window valid.
-
-Then — and only then — could it be shrunk.
 
 ---
 
-### 📜 The Scroll of Sacred Counts
+## 🧠 The Two-Map + Have/Need Approach
+
+**`tFreq`** = frequency map of `t`. What we NEED.
+**`windowFreq`** = frequency map of current window. What we HAVE.
+
+**`need`** = number of distinct characters in `t`.
+**`have`** = number of distinct characters whose frequency in the window
+meets or exceeds the required frequency.
+
+When `have == need` → the window contains all of `t`. Valid.
+
+---
+
+## 🧠 The Algorithm
+
+```
+1. Build tFreq from t. Set need = tFreq.size().
+2. Expand right: add s[right] to windowFreq.
+   If windowFreq[c] == tFreq[c] → this character is satisfied. have++.
+3. While have == need (window is valid):
+   Record the window if it's the smallest seen.
+   Shrink left: remove s[left] from windowFreq.
+   If windowFreq[c] < tFreq[c] → this character is no longer satisfied. have--.
+   left++.
+4. Return the smallest window recorded.
+```
+
+---
+
+### 📜 The Scroll of the Smallest Embrace
 
 ```cpp
 #include <iostream>
@@ -74,139 +81,267 @@ using namespace std;
 
 ---
 
-## ⚔️ The Oracle’s Sliding Window Ritual
-
-_Expand to gather, shrink to perfect_
+## 🎯 Build the Target Frequency Map
 
 ```cpp
 string minWindow(string s, string t) {
-    unordered_map<char, int> need, window;
-    for (char c : t) need[c]++;
+    if (t.size() > s.size()) return "";
+
+    unordered_map<char, int> tFreq, windowFreq;
+    for (char c : t) tFreq[c]++;
 ```
 
-The Oracle inscribed the sigil’s requirements.
+`tFreq` holds what we need: each character and its required count.
 
 ---
 
-### 🧭 Prepare the Journey
+### Set up tracking variables
 
 ```cpp
-    int left = 0, right = 0;
-    int formed = 0;
-    int required = need.size();
+    int need = tFreq.size();
+    int have = 0;
 ```
 
-Two boundaries were placed.
-The journey began.
+`need` = number of DISTINCT characters to satisfy.
+`have` = how many are currently satisfied in the window.
 
 ---
-
-### 🧲 Expand the Right Boundary
 
 ```cpp
     int minLen = INT_MAX;
-    int start = 0;
-
-    while (right < s.size()) {
-        char c = s[right];
-        window[c]++;
+    int minStart = 0;
+    int left = 0;
 ```
 
-Each character entered the window.
+`minLen` and `minStart` track the best (smallest) valid window found.
 
 ---
 
-### ✨ Check If a Requirement Is Satisfied
+## 🎯 Expand with Right Pointer
 
 ```cpp
-        if (need.count(c) && window[c] == need[c]) {
-            formed++;
+    for (int right = 0; right < s.size(); right++) {
+        char c = s[right];
+```
+
+---
+
+### Only track characters that are in t
+
+```cpp
+        if (tFreq.count(c)) {
+            windowFreq[c]++;
+```
+
+Only care about characters that appear in `t`.
+Others are irrelevant — they don't help satisfy the requirement.
+
+---
+
+### Check if this character just became satisfied
+
+```cpp
+            if (windowFreq[c] == tFreq[c]) {
+                have++;
+            }
         }
 ```
 
-A required symbol reached perfect balance.
+When the window's count of `c` EXACTLY reaches the required count,
+this character is now satisfied. `have++`.
+
+Why only at `==` and not `>=`? Because we only want to increment `have`
+ONCE per character — the moment it first meets the requirement.
+If it goes above (e.g., 3 when we need 2), `have` doesn't change.
+
+> _"The character crosses the threshold.
+> It has enough copies in the window.
+> One more satisfied. have grows by one."_
 
 ---
 
-### 🔻 Shrink While Window Is Valid
+## 🎯 Shrink While Valid — Find the Smallest Window
 
 ```cpp
-        while (left <= right && formed == required) {
-            if (right - left + 1 < minLen) {
-                minLen = right - left + 1;
-                start = left;
+        while (have == need) {
+```
+
+The window contains all of `t`. It's valid.
+Now shrink from the left to find the SMALLEST valid window.
+
+---
+
+### Record if this is the smallest
+
+```cpp
+            int windowLen = right - left + 1;
+            if (windowLen < minLen) {
+                minLen = windowLen;
+                minStart = left;
             }
 ```
 
-The Oracle recorded the smallest valid window so far.
+---
+
+### Remove the leftmost character
+
+```cpp
+            char leftChar = s[left];
+            if (tFreq.count(leftChar)) {
+                windowFreq[leftChar]--;
+```
+
+Only process characters that are in `t`.
 
 ---
 
-### 🧹 Remove the Leftmost Character
+### Check if this character just became unsatisfied
 
 ```cpp
-            char d = s[left];
-            window[d]--;
-            if (need.count(d) && window[d] < need[d]) {
-                formed--;
+                if (windowFreq[leftChar] < tFreq[leftChar]) {
+                    have--;
+                }
             }
             left++;
         }
-        right++;
     }
 ```
 
-If removing a character broke balance,
-the window stopped shrinking.
+When the window's count drops BELOW the required count,
+this character is no longer satisfied. `have--`.
+The window is no longer valid. The `while` loop exits.
+
+> _"The Oracle shrinks the window.
+> The moment a character drops below its quota —
+> the window breaks. Stop shrinking. Expand again."_
 
 ---
 
-### 🏁 Reveal the Window of Destiny
+### Return the result
 
 ```cpp
-    return minLen == INT_MAX ? "" : s.substr(start, minLen);
+    return minLen == INT_MAX ? "" : s.substr(minStart, minLen);
 }
 ```
 
-If no valid window was found,
-emptiness was returned.
-
 ---
 
-### 🎺 The Trial of the Sacred Sigil
+### 🎺 The Trial of the Smallest Embrace
 
 ```cpp
 int main() {
-    string s = "ADOBECODEBANC";
-    string t = "ABC";
-
-    cout << minWindow(s, t) << endl; // expected: "BANC"
+    cout << minWindow("ADOBECODEBANC", "ABC") << endl; // expected: "BANC"
+    cout << minWindow("a", "a") << endl;                // expected: "a"
+    cout << minWindow("a", "aa") << endl;               // expected: ""
     return 0;
 }
 ```
 
-The Oracle found:
+---
 
--   `"BANC"`
--   The smallest window containing `A`, `B`, and `C`
+**Trace for s = "ADOBECODEBANC", t = "ABC":**
 
-No shorter truth existed.
+```
+tFreq = {A:1, B:1, C:1}. need = 3.
+
+Expand until have == 3:
+  right=0 (A): windowFreq={A:1}. A meets req → have=1.
+  right=1 (D): not in t. skip.
+  right=2 (O): not in t. skip.
+  right=3 (B): windowFreq={A:1,B:1}. B meets req → have=2.
+  right=4 (E): not in t. skip.
+  right=5 (C): windowFreq={A:1,B:1,C:1}. C meets req → have=3. VALID!
+
+Shrink:
+  Window "ADOBEC" (0-5), len=6. Record: minLen=6, minStart=0.
+  Remove A: windowFreq={A:0,B:1,C:1}. A<1 → have=2. Stop.
+  left=1.
+
+Expand:
+  right=6 (O): skip. right=7 (D): skip. right=8 (E): skip.
+  right=9 (B): windowFreq={A:0,B:2}. B already satisfied. have stays 2.
+  right=10 (A): windowFreq={A:1}. A meets req → have=3. VALID!
+
+Shrink:
+  Window "DOBECODEBA" (1-10), len=10. Not better than 6.
+  Remove D: not in t. left=2.
+  Window (2-10), len=9. Not better.
+  Remove O: not in t. left=3.
+  ... keep shrinking until have drops ...
+  Remove B: windowFreq={B:1}. Still ≥1. have=3. Continue.
+  left=4. Window "ECODEBA" (4-10), len=7. Not better.
+  Remove E: not in t. left=5.
+  Window "CODEBA" (5-10), len=6. Ties with best.
+  Remove C: windowFreq={C:0}. C<1 → have=2. Stop. left=6.
+
+Expand:
+  right=11 (N): not in t. skip.
+  right=12 (C): windowFreq={C:1}. C meets req → have=3. VALID!
+
+Shrink:
+  Window "ODEBANC" (6-12), len=7. Not better.
+  Remove O: not in t. left=7.
+  Window "DEBANC" (7-12), len=6. Ties.
+  Remove D: not in t. left=8.
+  Window "EBANC" (8-12), len=5. Not better? 5 < 6! Record: minLen=5, minStart=8.
+  
+  Wait — let me recheck. "EBANC" has E,B,A,N,C. Contains A,B,C ✓. len=5.
+  
+  Remove E: not in t. left=9.
+  Window "BANC" (9-12), len=4. 4 < 5! Record: minLen=4, minStart=9.
+  Remove B: windowFreq={B:0}. B<1 → have=2. Stop. left=10.
+```
+
+**Answer: s.substr(9, 4) = "BANC"** ✓
 
 ---
 
-### 🧠 Memory of the Window Law
+## 🔍 The have/need Pattern — Why It's Efficient
 
--   Sliding window with two pointers
--   Track required vs current frequencies
--   Expand until all requirements met
--   Shrink to minimize length
--   Duplicates in `t` must be matched exactly
--   **Time:** O(n)
--   **Space:** O(1) (bounded alphabet)
+Without `have/need`, we'd check ALL characters in `tFreq` at every step
+to see if the window is valid. That's O(26) or O(|t|) per step.
 
-Thus is remembered the saga of
-**Minimum Window Substring**,
-where the Oracle gathers symbols with patience,
-then tightens her grip with precision —
-revealing the **smallest possible window**
-that satisfies destiny’s exact demands. 🪟✨
+With `have/need`, we only update when a character CROSSES the threshold.
+The validity check is O(1): just `have == need`.
+
+---
+
+## 🔍 Why `==` for Incrementing have, `<` for Decrementing
+
+```cpp
+if (windowFreq[c] == tFreq[c]) have++;    // just reached the requirement
+if (windowFreq[c] < tFreq[c]) have--;     // just dropped below requirement
+```
+
+**Increment at `==`:** the moment the count reaches the target.
+Not at `>` — going above doesn't satisfy a NEW character.
+
+**Decrement at `<`:** the moment the count drops below the target.
+Not at `==` — being at exactly the target is still satisfied.
+
+---
+
+## 🔍 Edge Cases
+
+**t longer than s:** impossible. Return "".
+**t = s:** the entire string is the answer.
+**No valid window:** `minLen` stays `INT_MAX`. Return "".
+**Duplicate characters in t:** `tFreq` handles naturally (e.g., "AA" needs count ≥ 2).
+
+---
+
+### 🧠 Memory of the Smallest Embrace Law
+
+-   **Two maps:** `tFreq` (what we need), `windowFreq` (what we have)
+-   **`have/need`:** O(1) validity check. `have == need` → valid.
+-   **Expand right:** add to windowFreq. If `windowFreq[c] == tFreq[c]` → have++.
+-   **Shrink while valid:** record min, remove left. If `windowFreq[c] < tFreq[c]` → have--.
+-   **Only track characters in t** — others are irrelevant
+-   **Time:** O(|s| + |t|). **Space:** O(|s| + |t|).
+
+Thus is remembered the saga of **Minimum Window Substring**,
+where the Oracle expanded until the window embraced all of t —
+then shrank to find the tightest embrace —
+the have/need counter tracking satisfaction in O(1) —
+until the smallest window containing every required character
+was found and remembered. 🪟🎯✨
