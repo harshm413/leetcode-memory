@@ -22,20 +22,10 @@
 > a law so elegant it reduced the problem
 > to a single walk:
 >
-> **'At every stone, ask one question:
-> Does the path behind me make me stronger?
-> If the accumulated sum is positive — carry it forward.
-> If it has turned negative — abandon it.
-> A negative past can only weaken the future.'**
->
-> The Oracle carried two torches:
->
-> **`curr`** — the strength of the current path ending here.
-> **`best`** — the greatest strength ever witnessed.
->
-> At every stone, she chose the stronger option:
-> extend the existing path, or begin anew.
-> And she always remembered the brightest moment.
+> **'Walk the valley. Keep a running sum.
+> If the sum is positive — it helps the future. Carry it.
+> If the sum turns negative — it hurts the future. Drop it.
+> Always remember the best sum you've ever seen.'**
 >
 > One walk. Two variables. The mightiest path revealed."\_
 
@@ -54,41 +44,25 @@ Output: 6   (subarray [4, -1, 2, 1])
 
 Input:  [5, 4, -1, 7, 8]
 Output: 23  (the entire array)
+
+Input:  [-3, -2, -5]
+Output: -2  (least negative — must pick at least one)
 ```
 
 ---
 
 ## 🧠 The Oracle's Core Insight — Drop the Burden, Carry the Strength
 
-At every index `i`, the Oracle faces a choice:
+Walk the array. Maintain a running `sum`.
 
-```
-Option A: Extend the current path → curr + nums[i]
-Option B: Start a new path here   → nums[i]
+At each element, add it to `sum`.
+If `sum` is the best we've ever seen — update `maxi`.
+If `sum` drops below 0 — reset to 0 and start fresh.
 
-curr = max(nums[i], curr + nums[i])
-```
+Why reset at 0? A negative prefix can only HURT any future subarray.
+Starting fresh is always better than carrying a negative sum forward.
 
-If `curr` was negative before adding `nums[i]`,
-then `nums[i]` alone is stronger than `curr + nums[i]`.
-The old path is abandoned. A new path begins.
-
-If `curr` was non-negative, extending is at least as good.
-The old path is carried forward.
-
-After every step, `best` remembers the greatest `curr` ever seen.
-
-This is **Kadane's Algorithm** — a dynamic programming solution
-compressed into O(1) space:
-
-```
-dp[i] = max(nums[i], dp[i-1] + nums[i])
-answer = max(dp[0], dp[1], ..., dp[n-1])
-```
-
-Every subarray must end somewhere.
-If we know the best subarray ending at every position,
-the global best is simply the maximum among them.
+This is **Kadane's Algorithm**.
 
 ---
 
@@ -97,6 +71,7 @@ the global best is simply the maximum among them.
 ```cpp
 #include <iostream>
 #include <vector>
+#include <climits>
 using namespace std;
 ```
 
@@ -104,93 +79,84 @@ using namespace std;
 
 ## ⚔️ The Oracle's Kadane Ritual
 
-_Carry strength, drop weakness, remember the brightest moment_
+### Initialize
 
 ```cpp
-int maxSubArray(vector<int>& nums) {
-    int curr = nums[0];
-    int best = nums[0];
+long long maxSubArray(vector<int>& nums) {
+    long long maxi = LONG_MIN;
+    long long sum = 0;
 ```
 
-The Oracle stood at the first stone of the valley.
+`maxi` = the greatest subarray sum ever seen. Starts at `LONG_MIN`
+so that even a single negative element will beat it.
 
-`curr` — the maximum sum of any subarray ending at the current position.
-`best` — the global maximum across all subarrays seen so far.
+`sum` = the running sum of the current subarray. Starts at 0
+because no elements have been added yet.
 
-Both torches were lit with the first stone's value —
-for it was the only path known.
-
-> _"Both begin at nums[0] — not at 0.
-> If all numbers are negative, initializing to 0
-> would falsely claim an empty subarray exists.
-> The problem demands at least one element."_
+> _"Why LONG_MIN and not 0? Because if all numbers are negative,
+> we still need to return the least negative one.
+> LONG_MIN ensures any real element will update maxi."_
 
 ---
 
-## 🧭 Walk the Burning Path — Stone by Stone
+### Walk the valley
 
 ```cpp
-    for (int i = 1; i < nums.size(); i++) {
+    for (int i = 0; i < nums.size(); i++) {
 ```
-
-The Oracle began her march from the second stone onward.
-The first stone had already been claimed.
 
 ---
 
-### 🔥 The Choice — Extend or Abandon
+### Add the current element to the running sum
 
 ```cpp
-        curr = max(nums[i], curr + nums[i]);
+        sum += nums[i];
 ```
 
-At every stone, the Oracle asked:
-
-> **"Does the path behind me make me stronger?"**
-
-**If `curr + nums[i]` ≥ `nums[i]`** —
-the accumulated path was still helpful.
-The Oracle carried the past forward.
-
-**If `curr + nums[i]` < `nums[i]`** —
-the accumulated path had become a burden.
-Starting fresh at `nums[i]` alone was stronger.
-The Oracle abandoned the past without hesitation.
-
-This single line is the entire heart of Kadane's Algorithm.
-
-> _"A negative past can only weaken the future.
-> The moment the burden outweighs the stone,
-> the Oracle drops everything
-> and begins a new march."_
+Extend the current subarray by including `nums[i]`.
 
 ---
 
-### 🏆 Remember the Brightest Moment
+### Update the global maximum
 
 ```cpp
-        best = max(best, curr);
+        if (sum > maxi) {
+            maxi = sum;
+        }
+```
+
+If the current running sum is the best we've ever seen — remember it.
+
+This is checked BEFORE the reset below. Why? Because even if `sum`
+is about to go negative, the value RIGHT NOW might be the best.
+We capture the peak before dropping.
+
+---
+
+### If sum goes negative — reset
+
+```cpp
+        if (sum < 0) {
+            sum = 0;
+        }
     }
 ```
 
-After every choice, the Oracle compared
-the current path's strength against the greatest ever seen.
+A negative sum means the subarray ending here is a net loss.
+Carrying it forward would only hurt future subarrays.
+Drop everything. Start fresh from the next element.
 
-If `curr` surpassed `best` — a new champion was crowned.
-If not — `best` held firm, remembering a brighter moment from the past.
+> _"The Oracle checks: 'Is my accumulated path a burden?'
+> If the sum has turned negative — she drops it.
+> A fresh start from the next stone is always better
+> than dragging a negative weight."_
 
 ---
 
-### 🏁 Return the Mightiest Path
-
 ```cpp
-    return best;
+    return maxi;
 }
 ```
-
-When the last stone had been judged,
-`best` held the answer —
-the maximum sum of any contiguous subarray in the entire valley.
 
 ---
 
@@ -215,84 +181,150 @@ int main() {
 
 **Full trace for `[-2, 1, -3, 4, -1, 2, 1, -5, 4]`:**
 
-| i | nums[i] | curr + nums[i] | nums[i] alone | curr (chosen)   | best  |
-| - | ------- | --------------- | ------------- | --------------- | ----- |
-| 0 | -2      | —               | —             | -2              | -2    |
-| 1 | 1       | -2 + 1 = -1     | 1             | **1** (fresh)   | 1     |
-| 2 | -3      | 1 + (-3) = -2   | -3            | **-2** (extend) | 1     |
-| 3 | 4       | -2 + 4 = 2      | 4             | **4** (fresh)   | 4     |
-| 4 | -1      | 4 + (-1) = 3    | -1            | **3** (extend)  | 4     |
-| 5 | 2       | 3 + 2 = 5       | 2             | **5** (extend)  | 5     |
-| 6 | 1       | 5 + 1 = 6       | 1             | **6** (extend)  | **6** |
-| 7 | -5      | 6 + (-5) = 1    | -5            | **1** (extend)  | 6     |
-| 8 | 4       | 1 + 4 = 5       | 4             | **5** (extend)  | 6     |
+| i | nums[i] | sum after add | maxi | sum < 0? | sum after reset |
+|---|---------|---------------|------|----------|-----------------|
+| 0 | -2      | -2            | -2   | Yes → reset | 0 |
+| 1 | 1       | 1             | 1    | No       | 1 |
+| 2 | -3      | -2            | 1    | Yes → reset | 0 |
+| 3 | 4       | 4             | 4    | No       | 4 |
+| 4 | -1      | 3             | 4    | No       | 3 |
+| 5 | 2       | 5             | 5    | No       | 5 |
+| 6 | 1       | 6             | **6**| No       | 6 |
+| 7 | -5      | 1             | 6    | No       | 1 |
+| 8 | 4       | 5             | 6    | No       | 5 |
 
-**Answer: 6** ✓
+**Answer: 6** ✓ (subarray [4, -1, 2, 1])
 
-At index 1: the Oracle abandoned `-2` and started fresh at `1`.
-At index 3: she abandoned `-2` again and started fresh at `4`.
-From index 3 to 6: the path `[4, -1, 2, 1]` grew to sum `6` — the peak.
-At index 7: `-5` hurt, but `curr` stayed positive (`1`), so the path continued.
-The path never surpassed `6` again. `best` remembered the peak.
+At index 0: sum = -2, negative → reset. Fresh start.
+At index 2: sum = -2, negative → reset. Fresh start.
+At index 3: sum = 4, new subarray begins here.
+Indices 3-6: sum grows to 6 — the peak. maxi captures it.
+Index 7: -5 hurts but sum stays positive (1). No reset.
+The path continues but never beats 6 again.
 
 ---
 
 **Full trace for `[5, 4, -1, 7, 8]`:**
 
-| i | nums[i] | curr + nums[i] | nums[i] alone | curr (chosen)    | best   |
-| - | ------- | --------------- | ------------- | ---------------- | ------ |
-| 0 | 5       | —               | —             | 5                | 5      |
-| 1 | 4       | 5 + 4 = 9       | 4             | **9** (extend)   | 9      |
-| 2 | -1      | 9 + (-1) = 8    | -1            | **8** (extend)   | 9      |
-| 3 | 7       | 8 + 7 = 15      | 7             | **15** (extend)  | 15     |
-| 4 | 8       | 15 + 8 = 23     | 8             | **23** (extend)  | **23** |
+| i | nums[i] | sum | maxi |
+|---|---------|-----|------|
+| 0 | 5       | 5   | 5    |
+| 1 | 4       | 9   | 9    |
+| 2 | -1      | 8   | 9    |
+| 3 | 7       | 15  | 15   |
+| 4 | 8       | 23  | **23** |
 
-**Answer: 23** ✓
+**Answer: 23** ✓ (entire array)
 
-The entire array was the strongest path.
-The `-1` was a minor dip — but the accumulated `9` easily absorbed it.
-The Oracle never abandoned the path.
+Sum never goes negative. The Oracle never resets. One continuous path.
 
 ---
 
 **Trace for `[-3, -2, -5]`:**
 
-| i | nums[i] | curr + nums[i] | nums[i] alone | curr (chosen)    | best  |
-| - | ------- | --------------- | ------------- | ---------------- | ----- |
-| 0 | -3      | —               | —             | -3               | -3    |
-| 1 | -2      | -3 + (-2) = -5  | -2            | **-2** (fresh)   | **-2** |
-| 2 | -5      | -2 + (-5) = -7  | -5            | **-5** (fresh)   | -2    |
+| i | nums[i] | sum | maxi | Reset? |
+|---|---------|-----|------|--------|
+| 0 | -3      | -3  | -3   | Yes → 0 |
+| 1 | -2      | -2  | **-2** | Yes → 0 |
+| 2 | -5      | -5  | -2   | Yes → 0 |
 
 **Answer: -2** ✓
 
-All numbers were negative. The Oracle correctly returned the least negative.
-Because `best` was initialized to `nums[0]` — not `0` —
-the algorithm never falsely claimed an empty subarray.
+Every element is negative. Sum resets after every element.
+But `maxi` captures each element individually before the reset.
+The least negative (-2) wins. This is why `maxi = LONG_MIN` — not 0.
+
+---
+
+## 🔍 Why Dropping a Negative Sum Is Always Safe
+
+This is the most common doubt about Kadane's:
+
+> _"If sum from 0..j was positive, then adding j+1 makes it negative,
+> and we reset — but what if the max subarray was i..end
+> (starting somewhere in the middle of what we dropped)?"_
+
+**It can't be.** Here's the proof:
+
+When `sum` goes negative at position `j+1`, it means:
+```
+sum(0..j+1) < 0
+```
+
+Now consider ANY starting point `i` where `0 ≤ i ≤ j+1`:
+```
+sum(i..j+1) = sum(0..j+1) - sum(0..i-1)
+```
+
+`sum(0..j+1)` is negative (that's why we reset).
+`sum(0..i-1)` is non-negative (if it were negative, we would have
+reset EARLIER — before reaching `i`).
+
+So: `sum(i..j+1) = negative - non-negative = STILL NEGATIVE`.
+
+**Every subarray ending at j+1 has a negative sum.** All of them.
+
+Now what about `sum(i..end)` where `end > j+1`?
+```
+sum(i..end) = sum(i..j+1) + sum(j+2..end)
+              ← negative →   ← whatever →
+```
+
+Since `sum(i..j+1)` is negative, including it makes things WORSE:
+```
+sum(j+2..end) > sum(i..end)   always
+```
+
+**Starting fresh from j+2 is ALWAYS better than keeping any prefix
+that includes the negative portion.** That's exactly what the reset does.
+
+> _"A negative prefix is dead weight.
+> No matter where you started within it,
+> dropping it and starting fresh gives a better result.
+> The proof: every subarray through the negative point
+> is worse than the subarray that skips it."_
+
+---
+
+## 🔍 The DP Interpretation
+
+Kadane's is really DP compressed into O(1) space:
+
+```
+dp[i] = max subarray sum ending at index i
+dp[i] = max(nums[i], dp[i-1] + nums[i])
+answer = max(dp[0], dp[1], ..., dp[n-1])
+```
+
+Our code does the same thing:
+-   `sum += nums[i]` is `dp[i-1] + nums[i]`.
+-   `if (sum < 0) sum = 0` is equivalent to `max(nums[i], dp[i-1] + nums[i])`
+    because resetting to 0 means the next element starts fresh.
+-   `maxi` tracks the max across all dp values.
 
 ---
 
 ### 🧠 Memory of the Burning Path Law
 
--   **Kadane's Algorithm** — dynamic programming compressed into O(1) space
--   `curr` = maximum subarray sum ending at the current position
--   `best` = maximum subarray sum seen across all positions
--   **At each step:** `curr = max(nums[i], curr + nums[i])`
-    -   If `curr` was negative → start fresh (abandon the past)
-    -   If `curr` was non-negative → extend (carry the strength)
--   **After each step:** `best = max(best, curr)`
--   **Initialize both** `curr` and `best` to `nums[0]` — never to `0`
--   **Why not 0?** All-negative arrays must return the least negative element, not an empty sum
--   **DP interpretation:** `dp[i] = max(nums[i], dp[i-1] + nums[i])`, answer = `max(dp[0..n-1])`
--   **Time:** O(N) — single pass through the array
--   **Space:** O(1) — only two variables, no extra arrays
+-   **Kadane's Algorithm** — DP compressed into O(1) space
+-   **`sum`** = running sum of current subarray
+-   **`maxi`** = best sum ever seen (initialized to `LONG_MIN`)
+-   **At each step:** add element, update maxi, reset if negative
+-   **Update maxi BEFORE reset** — capture the peak before dropping
+-   **Why reset is safe:** every subarray through a negative prefix
+    is worse than starting fresh after it (proven above)
+-   **All-negative arrays:** maxi captures each element individually,
+    returns the least negative
+-   **Time:** O(N) — single pass. **Space:** O(1) — two variables.
 
 Thus is remembered the saga of **Maximum Subarray**,
 where the Oracle walked a valley of gains and losses
 carrying two torches —
-one for the current path's strength,
-one for the greatest strength ever witnessed —
-casting aside weakening burdens the moment they turned negative,
-extending the march when the past still served the future —
+one for the running sum,
+one for the greatest sum ever witnessed —
+resetting the moment the path turned negative,
+knowing that a fresh start always beats
+dragging a burden from the past —
 and uncovering the single contiguous path
 that burned brighter than all others
 in a single, unstoppable pass. 🔥📜✨

@@ -299,6 +299,59 @@ But for this problem, verification is unnecessary.
 
 ---
 
+## 💡 Other Approaches (Quick Mention)
+
+### Sorting Approach — O(N log N) time, O(1) space
+
+```cpp
+int majorityElement(vector<int>& nums) {
+    sort(nums.begin(), nums.end());
+    return nums[nums.size() / 2];
+}
+```
+
+After sorting, the majority element MUST occupy the middle position.
+Why? It appears more than n/2 times. No matter where it starts,
+it stretches past the midpoint. `nums[n/2]` is always the answer.
+
+Simple and clean. But O(N log N) — slower than Boyer-Moore.
+
+---
+
+### HashMap Approach — O(N) time, O(N) space
+
+```cpp
+int majorityElement(vector<int>& nums) {
+    unordered_map<int, int> counts;
+    int n = nums.size();
+    for (int x : nums) {
+        counts[x]++;
+        if (counts[x] > n / 2) return x;
+    }
+    return -1;
+}
+```
+
+Count frequencies. Return as soon as any count exceeds n/2.
+The early return is an optimization — no need to finish the loop.
+
+O(N) time like Boyer-Moore, but O(N) space for the map.
+
+---
+
+### Why Boyer-Moore Wins
+
+| Approach | Time | Space |
+|----------|------|-------|
+| Sorting | O(N log N) | O(1) |
+| HashMap | O(N) | O(N) |
+| **Boyer-Moore** | **O(N)** | **O(1)** |
+
+Boyer-Moore is optimal on both axes. Know all three —
+start with hashmap if asked, then optimize to Boyer-Moore.
+
+---
+
 ### 🧠 Memory of the Voting Rite
 
 - **Majority element** appears more than ⌊n/2⌋ times

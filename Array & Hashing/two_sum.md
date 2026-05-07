@@ -272,6 +272,56 @@ For `[3, 3]` with target `6`:
 
 ---
 
+## 💡 The Sorting + Two Pointer Approach (Quick Mention)
+
+If the problem asked for VALUES instead of INDICES,
+sorting + two pointers would be clean and space-efficient:
+
+```cpp
+vector<int> twoSum(vector<int>& nums, int target) {
+    vector<pair<int,int>> arr;
+    for (int i = 0; i < nums.size(); i++) {
+        arr.push_back({nums[i], i});
+    }
+    sort(arr.begin(), arr.end());
+```
+
+Store `{value, originalIndex}` pairs and sort by value.
+This preserves the original indices even after sorting.
+
+---
+
+```cpp
+    int left = 0, right = arr.size() - 1;
+    while (left < right) {
+        int sum = arr[left].first + arr[right].first;
+        if (sum == target) {
+            return {arr[left].second, arr[right].second};
+        } else if (sum < target) {
+            left++;
+        } else {
+            right--;
+        }
+    }
+    return {};
+}
+```
+
+**Sum too small** → move `left` right (need a bigger value).
+**Sum too big** → move `right` left (need a smaller value).
+**Sum matches** → extract the original indices from the pairs.
+
+O(N log N) time (sorting), O(N) space (pairs array).
+
+**Why the hashmap approach is preferred here:**
+The hashmap is O(N) time — faster than O(N log N).
+It also doesn't need the `{value, index}` pair trick.
+But the two-pointer approach is worth knowing for
+sorted-input problems like Two Sum II (LeetCode 167)
+where the array is already sorted and O(1) space is desired.
+
+---
+
 ### 🧠 Memory of the Perfect Pair Law
 
 -   **Hash map `seen`:** maps each value to its index -- O(1) lookup
