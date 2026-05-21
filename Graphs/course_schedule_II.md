@@ -14,16 +14,21 @@
 > not just detecting if a DAG exists,
 > but producing the actual ordering.
 >
-> The Oracle reached for Kahn's Algorithm again --
-> the same BFS she used for Course Schedule I.
-> But this time, instead of just counting completed nodes,
-> she RECORDED the order in which they were dequeued.
+> Two weapons existed for this quest:
 >
-> The dequeue order of Kahn's Algorithm
-> IS a valid topological ordering.
+> **BFS (Kahn's Algorithm)** --
+> peel nodes with no prerequisites layer by layer.
+> The dequeue order IS the topological order.
 >
-> If a cycle existed -- some nodes were never dequeued --
-> return an empty array."\_
+> **DFS (Reverse Post-Order)** --
+> explore every path to its deepest end.
+> When a node finishes exploring all its descendants,
+> push it onto a stack.
+> The stack, reversed, gives the topological order.
+>
+> Both produce valid orderings.
+> Both detect cycles.
+> The Oracle mastered both."\_
 
 ---
 
@@ -48,22 +53,20 @@ Output: [0]
 
 ---
 
-## 🧠 The Oracle's Core Insight -- Kahn's Dequeue Order = Topological Order
+## 🧠 Approach One -- BFS (Kahn's Algorithm)
 
-In Course Schedule I, we counted completed nodes.
-Here, we **record** them.
-
-Every node dequeued by Kahn's Algorithm
-has ALL its prerequisites already dequeued before it.
-That's exactly what topological order means.
+Kahn's Algorithm peels the graph layer by layer:
 
 ```
-1. Build adjacency list + in-degree array.
-2. Enqueue all nodes with in-degree 0.
+1. Compute in-degree of every node.
+2. Enqueue all nodes with in-degree 0 (no prerequisites).
 3. BFS: dequeue → add to result → reduce neighbors' in-degree → enqueue if 0.
 4. If result.size() == numCourses → return result.
    Else → cycle exists → return [].
 ```
+
+The dequeue order IS the topological order --
+every node dequeued has ALL its prerequisites already dequeued before it.
 
 ```
 Time:  O(V + E)
@@ -72,7 +75,7 @@ Space: O(V + E)
 
 ---
 
-### 📜 The Scroll of the Ordered Scholars
+### 📜 The Scroll of the Ordered Scholars (BFS)
 
 ```cpp
 #include <iostream>
@@ -91,9 +94,9 @@ vector<int> findOrder(int numCourses, vector<vector<int>>& prerequisites) {
     vector<int> inDegree(numCourses, 0);
 ```
 
-Same setup as Course Schedule I:
--   `graph[b]` = courses that depend on `b`.
--   `inDegree[a]` = number of prerequisites for course `a`.
+Two structures:
+-   `graph[b]` = courses that depend on course `b`.
+-   `inDegree[a]` = how many prerequisites course `a` still needs.
 
 ---
 
@@ -125,8 +128,12 @@ edge from `b → a`, and `inDegree[a]++`.
     }
 ```
 
-Courses with in-degree 0 can be taken immediately.
-They have no prerequisites. They enter the queue first.
+Courses with in-degree 0 have no prerequisites.
+They can be taken immediately. They enter the queue first.
+
+> _"The courses with no blockers go first.
+> They owe nothing to anyone.
+> They enter the queue freely."_
 
 ---
 
@@ -136,8 +143,7 @@ They have no prerequisites. They enter the queue first.
     vector<int> order;
 ```
 
-`order` will hold the topological ordering --
-the sequence in which courses should be taken.
+`order` will hold the topological ordering.
 
 ---
 
@@ -161,11 +167,6 @@ All its prerequisites have been completed.
 ```
 
 This course was added to the topological order.
-
-**Why is this correct?**
-Every course dequeued has in-degree 0 at the time of dequeuing.
-That means every prerequisite it needed
-was already dequeued (and recorded) earlier.
 
 > _"You enter the order only when all your blockers
 > have already entered before you.
@@ -221,7 +222,7 @@ They were trapped in a cycle. Return empty array.
 
 ---
 
-### 🎺 The Trial of the Ordered Scholars
+### 🎺 The Trial of the Ordered Scholars (BFS)
 
 ```cpp
 int main() {
@@ -269,10 +270,6 @@ In-degrees: [0, 1, 1, 2]
 
 order.size() = 4 == numCourses. **Answer: [0, 1, 2, 3]** ✓
 
-Note: if 2 was dequeued before 1 (both had in-degree 0 at the same time),
-the order would be `[0, 2, 1, 3]` -- also valid.
-Topological sort is not unique when multiple nodes have in-degree 0 simultaneously.
-
 ---
 
 **Full trace for numCourses=2, prerequisites=[[1,0],[0,1]]:**
@@ -286,33 +283,378 @@ BFS never runs. order = [].
 
 order.size() = 0 ≠ 2. **Answer: []** ✓
 
----
-
-**Trace for numCourses=3, prerequisites=[[1,0],[2,1]]:**
-
-```
-Graph: 0 → [1], 1 → [2], 2 → []
-In-degrees: [0, 1, 1]
-```
-
-Queue: [0]. Dequeue 0 → order=[0] → inDegree[1]=0 → enqueue 1.
-Dequeue 1 → order=[0,1] → inDegree[2]=0 → enqueue 2.
-Dequeue 2 → order=[0,1,2].
-
-**Answer: [0, 1, 2]** ✓ -- a simple chain.
+Both courses are trapped in a cycle: 0 requires 1, 1 requires 0.
+Neither can ever start.
 
 ---
 
-**Trace for numCourses=3, prerequisites=[] (no edges):**
+---
+
+## 🧠 Approach Two -- DFS (Reverse Post-Order)
+
+The DFS approach uses the **three-color system**
+and a **stack** to build the topological order.
+
+### The Core Idea
+
+In DFS, the **last** node to finish exploring all its descendants
+is the one with the deepest dependencies.
+It should come FIRST in topological order.
+
+By pushing nodes onto a stack AFTER all their descendants
+are fully explored (post-order), then reversing --
+we get a valid topological order.
 
 ```
-In-degrees: [0, 0, 0]
+WHITE (0) = unvisited
+GRAY  (1) = currently being explored (in the DFS stack)
+BLACK (2) = fully explored (all descendants processed)
 ```
 
-All three courses have in-degree 0. All enqueued.
-Dequeue order depends on queue: [0, 1, 2].
+**GRAY → GRAY edge = cycle detected → return empty.**
 
-**Answer: [0, 1, 2]** ✓ -- no dependencies, any order works.
+When a node turns BLACK (all descendants done) → push to stack.
+Reverse the stack → topological order.
+
+**Why does this work?**
+
+If edge `u → v` exists (u is prerequisite of v):
+DFS from u will explore v BEFORE finishing u.
+So v is pushed to the stack BEFORE u.
+When reversed: u comes before v. Correct.
+
+```
+Time:  O(V + E)
+Space: O(V + E)
+```
+
+---
+
+### 📜 The Scroll of the Ordered Scholars (DFS)
+
+```cpp
+#include <iostream>
+#include <vector>
+#include <stack>
+using namespace std;
+```
+
+---
+
+## 🔮 The DFS Function -- Explore and Push Post-Order
+
+```cpp
+bool dfs(int node, vector<vector<int>>& graph,
+         vector<int>& color, stack<int>& result) {
+```
+
+The Oracle entered a node to explore its entire subtree.
+
+---
+
+### 🔵 Mark GRAY -- Entering This Node
+
+```cpp
+    color[node] = 1;
+```
+
+This node is now on the current DFS path.
+If we encounter it again → cycle.
+
+> _"I am being explored.
+> If anyone on my path meets me again --
+> we have formed a loop."_
+
+---
+
+### 🔁 Explore Every Outgoing Edge
+
+```cpp
+    for (int next : graph[node]) {
+```
+
+Check every course that depends on this one.
+
+---
+
+### 🔴 GRAY Neighbor → Cycle Detected!
+
+```cpp
+        if (color[next] == 1) {
+            return false;
+        }
+```
+
+The neighbor is GRAY -- still being explored.
+We've found a back edge. A cycle exists.
+Topological sort is impossible. Return `false`.
+
+> _"I reached a node that is still on my current path.
+> The path loops back on itself.
+> A cycle. No valid ordering exists."_
+
+---
+
+### ⬜ WHITE Neighbor → Recurse
+
+```cpp
+        if (color[next] == 0) {
+            if (!dfs(next, graph, color, result)) {
+                return false;
+            }
+        }
+```
+
+The neighbor is unvisited. Explore it.
+If the recursion finds a cycle → propagate `false` upward.
+
+BLACK neighbors (color 2) are already fully explored → skip.
+They're already on the stack. No action needed.
+
+---
+
+### ⬛ Mark BLACK -- All Descendants Done → Push to Stack
+
+```cpp
+    color[node] = 2;
+    result.push(node);
+    return true;
+}
+```
+
+All descendants of this node have been fully explored
+and pushed to the stack.
+
+Now push THIS node. It goes on TOP of its descendants.
+When we reverse the stack later,
+this node will come BEFORE its descendants. Correct.
+
+> _"All my descendants are done.
+> They are already on the stack below me.
+> Now I take my place on top.
+> When the stack is reversed --
+> I will come first, they will follow.
+> Prerequisites before dependents."_
+
+---
+
+## 📋 The Main Function (DFS)
+
+```cpp
+vector<int> findOrder(int numCourses, vector<vector<int>>& prerequisites) {
+    vector<vector<int>> graph(numCourses);
+```
+
+Build the adjacency list.
+
+---
+
+```cpp
+    for (auto& p : prerequisites) {
+        int a = p[0];
+        int b = p[1];
+        graph[b].push_back(a);
+    }
+```
+
+For each `[a, b]` (a requires b): edge from `b → a`.
+Same direction as the BFS approach.
+
+---
+
+### 🎨 Initialize Colors and Stack
+
+```cpp
+    vector<int> color(numCourses, 0);
+    stack<int> result;
+```
+
+All nodes start WHITE (unvisited).
+The stack will accumulate nodes in reverse topological order.
+
+---
+
+### 🔁 DFS from Every Unvisited Node
+
+```cpp
+    for (int i = 0; i < numCourses; i++) {
+        if (color[i] == 0) {
+            if (!dfs(i, graph, color, result)) {
+                return {};
+            }
+        }
+    }
+```
+
+Start DFS from every WHITE node.
+This handles disconnected components --
+courses with no relationship to each other.
+
+If any DFS call detects a cycle → return empty array.
+
+---
+
+### 📤 Pop the Stack → Topological Order
+
+```cpp
+    vector<int> order;
+    while (!result.empty()) {
+        order.push_back(result.top());
+        result.pop();
+    }
+    return order;
+}
+```
+
+The stack holds nodes in reverse topological order
+(deepest dependencies on bottom, sources on top).
+
+Popping gives the correct order:
+sources first, then their dependents, then deeper dependents.
+
+---
+
+### 🎺 The Trial of the Ordered Scholars (DFS)
+
+```cpp
+int main() {
+    vector<vector<int>> p1 = {{1,0},{2,0},{3,1},{3,2}};
+    auto r1 = findOrder(4, p1);
+    for (int x : r1) cout << x << " "; cout << endl;
+    // expected: 0 2 1 3 (or 0 1 2 3 -- depends on DFS order)
+
+    vector<vector<int>> p2 = {{1,0},{0,1}};
+    auto r2 = findOrder(2, p2);
+    for (int x : r2) cout << x << " "; cout << endl;
+    // expected: (empty)
+
+    return 0;
+}
+```
+
+---
+
+**Full DFS trace for numCourses=4, prerequisites=[[1,0],[2,0],[3,1],[3,2]]:**
+
+```
+Graph:
+  0 → [1, 2]
+  1 → [3]
+  2 → [3]
+  3 → []
+```
+
+**DFS from node 0:**
+
+```
+dfs(0): GRAY.
+  → neighbor 1: WHITE → recurse.
+    dfs(1): GRAY.
+      → neighbor 3: WHITE → recurse.
+        dfs(3): GRAY.
+          → no neighbors.
+        color[3] = BLACK. Push 3. Stack: [3]
+      → return true.
+    color[1] = BLACK. Push 1. Stack: [3, 1]
+  → neighbor 2: WHITE → recurse.
+    dfs(2): GRAY.
+      → neighbor 3: BLACK → skip.
+    color[2] = BLACK. Push 2. Stack: [3, 1, 2]
+  → return true.
+color[0] = BLACK. Push 0. Stack: [3, 1, 2, 0]
+```
+
+**Pop stack:** 0, 2, 1, 3.
+
+**Answer: [0, 2, 1, 3]** ✓
+
+Node 3 was pushed first (deepest dependency).
+Node 0 was pushed last (source, no prerequisites).
+Reversed: 0 comes first, 3 comes last. Correct.
+
+---
+
+**DFS trace for cycle: numCourses=2, prerequisites=[[1,0],[0,1]]:**
+
+```
+Graph:
+  0 → [1]
+  1 → [0]
+```
+
+```
+dfs(0): GRAY.
+  → neighbor 1: WHITE → recurse.
+    dfs(1): GRAY.
+      → neighbor 0: GRAY → CYCLE! Return false.
+    Return false.
+  Return false.
+```
+
+**Answer: []** ✓
+
+Node 0 is GRAY. While exploring its descendant 1,
+we find an edge back to 0 (still GRAY).
+Back edge detected. Cycle confirmed.
+
+---
+
+**DFS trace for no edges: numCourses=3, prerequisites=[]:**
+
+```
+Graph: 0→[], 1→[], 2→[]
+```
+
+```
+dfs(0): GRAY. No neighbors. BLACK. Push 0. Stack: [0]
+dfs(1): GRAY. No neighbors. BLACK. Push 1. Stack: [0, 1]
+dfs(2): GRAY. No neighbors. BLACK. Push 2. Stack: [0, 1, 2]
+```
+
+Pop: 2, 1, 0.
+
+**Answer: [2, 1, 0]** ✓ (any order is valid when no dependencies exist)
+
+---
+
+## 🔍 Why the Stack Gives Correct Order
+
+Consider edge `u → v` (u must come before v).
+
+When DFS explores `u`, it will eventually reach `v`
+(either directly or through a chain).
+
+`v` finishes exploring BEFORE `u` finishes
+(because `v` is deeper in the DFS tree).
+
+So `v` is pushed to the stack BEFORE `u`.
+Stack (bottom to top): `..., v, ..., u`.
+
+When popped: `u` comes out before `v`. Correct!
+
+> _"The deepest nodes finish first and sink to the bottom.
+> The sources finish last and sit on top.
+> Popping gives sources first -- the natural order."_
+
+---
+
+## 🔍 BFS (Kahn's) vs DFS (Reverse Post-Order)
+
+| Kahn's Algorithm (BFS)            | DFS Reverse Post-Order            |
+| --------------------------------- | --------------------------------- |
+| Iterative (no recursion)          | Recursive (stack overflow risk)   |
+| Produces order directly            | Produces reverse order (needs stack) |
+| Cycle detection: count < n        | Cycle detection: GRAY→GRAY edge   |
+| Easier to explain in interviews   | More "graph theory" flavored      |
+| No risk of stack overflow          | Deep graphs may overflow          |
+| Naturally handles disconnected     | Outer loop handles disconnected   |
+
+Both are O(V + E). Both detect cycles correctly.
+Both produce valid topological orderings (possibly different ones).
+
+**Interview recommendation:**
+Lead with Kahn's (cleaner, iterative, direct).
+Mention DFS as an alternative to show depth of knowledge.
 
 ---
 
@@ -321,19 +663,19 @@ Dequeue order depends on queue: [0, 1, 2].
 | Course Schedule I                 | Course Schedule II                |
 | --------------------------------- | --------------------------------- |
 | Return `true` or `false`          | Return the **ordering** or `[]`   |
-| Count completed nodes             | Record completed nodes in `order` |
+| "Does a valid order exist?"       | "Give me the actual order"        |
+| Count completed nodes             | Record completed nodes             |
 | `completed == numCourses`         | `order.size() == numCourses`      |
-| Same Kahn's BFS                   | Same Kahn's BFS                   |
 
+The graph building and traversal logic is identical.
 The only difference: **record instead of count**.
-The BFS logic is identical.
 
 ---
 
 ## 🔍 Why Multiple Valid Orderings Exist
 
 When multiple nodes have in-degree 0 at the same time,
-any of them can be dequeued first.
+any of them can go first.
 
 ```
 0 → 2
@@ -343,58 +685,49 @@ any of them can be dequeued first.
 Both 0 and 1 have in-degree 0. Either can go first.
 Valid orderings: `[0, 1, 2]` or `[1, 0, 2]`.
 
-The queue's internal ordering decides which comes first.
-Both are correct topological sorts.
-
----
-
-## 🔄 DFS Alternative -- Reverse Post-Order
-
-DFS can also produce a topological sort:
-
-```
-For each unvisited node:
-  DFS(node):
-    Mark as visiting (GRAY)
-    For each neighbor:
-      If GRAY → cycle!
-      If WHITE → recurse
-    Mark as visited (BLACK)
-    Push node to stack (post-order)
-
-Reverse the stack → topological order
-```
-
-The last node to finish DFS (deepest dependency)
-goes to the bottom of the stack.
-Reversing gives the correct order.
-
-Kahn's is generally preferred -- it's iterative,
-naturally handles cycles (incomplete count),
-and produces the order directly without reversing.
+Kahn's produces one ordering based on queue order (FIFO).
+DFS produces a different ordering based on traversal order.
+Both are correct.
 
 ---
 
 ### 🧠 Memory of the Ordered Scholars Law
 
--   **Same as Course Schedule I** but record the dequeue order
--   **Kahn's Algorithm:** enqueue in-degree 0 → BFS → dequeue = topo order
--   **Dequeue order IS topological order** -- every node's prerequisites are dequeued first
--   **Cycle check:** `order.size() == numCourses` → valid; else → cycle → return `[]`
--   **Multiple valid orderings** exist when multiple nodes have in-degree 0 simultaneously
--   **DFS alternative:** reverse post-order gives topological sort
--   **Time:** O(V + E)
--   **Space:** O(V + E)
+**BFS (Kahn's Algorithm):**
+-   Build adjacency list + in-degree array
+-   Enqueue all nodes with in-degree 0
+-   BFS: dequeue → record in order → reduce neighbors' in-degree → enqueue if 0
+-   `order.size() == numCourses` → valid; else → cycle → return `[]`
+-   Dequeue order IS topological order
+
+**DFS (Reverse Post-Order):**
+-   Three colors: WHITE=unvisited, GRAY=in-progress, BLACK=done
+-   DFS from every WHITE node
+-   GRAY → GRAY edge = cycle → return `[]`
+-   When node turns BLACK → push to stack
+-   Pop stack → topological order
+-   Deepest dependencies pushed first, sources pushed last
+
+-   **Time:** O(V + E) for both
+-   **Space:** O(V + E) for both
 -   **Edge cases:**
     -   No prerequisites → any order is valid
     -   Cycle → return empty array
     -   Single course → return [0]
     -   Chain (0→1→2→3) → only one valid order
+    -   Disconnected → both approaches handle naturally
 
 Thus is remembered the saga of **Course Schedule II**,
 where the Oracle did not merely ask "can it be done?"
 but demanded the exact order --
-peeling the graph layer by layer with Kahn's Algorithm,
-recording each course as it was freed from its prerequisites --
-until the full topological order was written
+
+With Kahn's, she peeled the graph layer by layer,
+recording each course as it was freed from its prerequisites.
+
+With DFS, she dove to the deepest dependencies first,
+pushing each completed node onto a stack --
+so that when the stack was reversed,
+sources came first and dependents followed --
+
+Until the full topological order was written
 or a cycle left the scroll forever incomplete. 📚📋✨

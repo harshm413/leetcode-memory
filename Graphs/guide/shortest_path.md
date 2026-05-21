@@ -54,21 +54,32 @@ The first time BFS reaches a node = shortest distance.
 ### Single Source Shortest Path
 
 ```cpp
-vector<int> bfsShortestPath(int start, vector<vector<int>>& graph, int n) {
-    vector<int> dist(n, -1);
-    queue<int> q;
+vector<int> shortestPath(vector<vector<int>>& edges, int N, int M, int src) {
+    // Create adjacency list
+    vector<vector<int>> graph(N);
+    for (auto& e : edges) {
+        graph[e[0]].push_back(e[1]);
+        graph[e[1]].push_back(e[0]);
+    }
 ```
 
-`dist[i] = -1` means unreachable. `q` is the BFS queue.
+Build undirected graph from edge list.
 
 ---
 
 ```cpp
-    dist[start] = 0;
-    q.push(start);
+    // Initialize distances to infinity
+    vector<int> dist(N, 1e9);
+
+    // Source distance = 0
+    dist[src] = 0;
+
+    // BFS queue
+    queue<int> q;
+    q.push(src);
 ```
 
-The source has distance 0 to itself.
+All distances start at `1e9` (infinity). Source = 0.
 
 ---
 
@@ -76,34 +87,58 @@ The source has distance 0 to itself.
     while (!q.empty()) {
         int node = q.front();
         q.pop();
-```
 
-Dequeue a node. Its distance is final.
-
----
-
-```cpp
         for (int neighbor : graph[node]) {
-            if (dist[neighbor] == -1) {
-                dist[neighbor] = dist[node] + 1;
+            // Relaxation: if shorter path found
+            if (dist[node] + 1 < dist[neighbor]) {
+                dist[neighbor] = 1 + dist[node];
                 q.push(neighbor);
             }
         }
     }
-    return dist;
+```
+
+**Relaxation style** — `dist[node] + 1 < dist[neighbor]`.
+If the current path offers a shorter distance → update and enqueue.
+
+This mirrors how Dijkstra works — making it easier to see the connection.
+
+---
+
+```cpp
+    // Convert unreachable nodes to -1
+    vector<int> ans(N, -1);
+    for (int i = 0; i < N; i++) {
+        if (dist[i] != 1e9) {
+            ans[i] = dist[i];
+        }
+    }
+    return ans;
 }
 ```
 
-Unvisited neighbor → distance = current + 1. Enqueue.
-Already visited → skip (first visit was shortest).
-
-**Why BFS guarantees shortest path:**
-BFS processes ALL distance-d nodes before ANY distance-(d+1) node.
-So the first time a node is reached, it's via the shortest path.
+Nodes still at `1e9` are unreachable → mark as `-1`.
 
 ```
 Time:  O(V + E)
-Space: O(V)
+Space: O(V + E)
+```
+
+---
+
+### Trace (N=9, src=0)
+
+```
+Edges: {0,1},{0,3},{3,4},{4,5},{5,6},{1,2},{2,6},{6,7},{7,8},{6,8}
+
+BFS from 0:
+  dist[0]=0 → neighbors 1,3
+  dist[1]=1, dist[3]=1 → neighbors 2,4
+  dist[2]=2, dist[4]=2 → neighbors 6,5
+  dist[6]=3, dist[5]=3 → neighbors 7,8
+  dist[7]=4, dist[8]=4
+
+Answer: [0, 1, 2, 1, 2, 3, 3, 4, 4]
 ```
 
 ---
@@ -151,8 +186,8 @@ When edges have different positive weights,
 BFS doesn't work (a 2-hop path might be shorter than a 1-hop path
 if the 1-hop edge is very heavy).
 
-Dijkstra uses a **min-heap (priority queue)** to always process
-the node with the smallest known distance first.
+Dijkstra uses a **min-heap (priority queue)** or a **set**
+to always process the node with the smallest known distance first.
 
 ### The Idea
 
@@ -170,77 +205,51 @@ While heap is not empty:
       Push (newDist, neighbor) into heap.
 ```
 
-### Building the Weighted Graph
-
-```cpp
-vector<vector<pair<int,int>>> graph(n);
-// graph[u] = list of {neighbor, weight}
-
-for (auto& e : edges) {
-    graph[e[0]].push_back({e[1], e[2]});
-    graph[e[1]].push_back({e[0], e[2]}); // if undirected
-}
-```
-
-### The Algorithm
-
-```cpp
-vector<int> dijkstra(int start, vector<vector<pair<int,int>>>& graph, int n) {
-    vector<int> dist(n, INT_MAX);
-    priority_queue<pair<int,int>, vector<pair<int,int>>, greater<pair<int,int>>> pq;
-```
-
-`dist[i]` = shortest known distance to node `i`. Starts at ∞.
-`pq` = min-heap of `{distance, node}`. `greater` makes it a min-heap.
-
 ---
 
+### 4a. Dijkstra with Priority Queue
+
 ```cpp
-    dist[start] = 0;
-    pq.push({0, start});
+vector<int> dijkstra(int V, vector<vector<pair<int,int>>>& graph, int src) {
+    // Distance array initialized to infinity
+    vector<int> dist(V, 1e9);
+
+    // Min-heap: {distance, node}
+    priority_queue<pair<int,int>, vector<pair<int,int>>,
+                    greater<pair<int,int>>> pq;
+
+    // Source distance = 0
+    dist[src] = 0;
+    pq.push({0, src});
 ```
 
-Source has distance 0.
+All distances start at `1e9`. Source pushed with distance 0.
 
 ---
 
 ```cpp
     while (!pq.empty()) {
-        auto [d, node] = pq.top();
+        // Extract node with minimum distance
+        int d = pq.top().first;
+        int node = pq.top().second;
         pq.pop();
-```
 
-Pop the node with the smallest distance.
-
----
-
-```cpp
+        // Skip if this distance is outdated (lazy deletion)
         if (d > dist[node]) continue;
 ```
 
-**The lazy deletion check.**
-
-The heap may contain stale entries (old, longer distances).
-If the popped distance is greater than the current best →
-this entry is outdated. Skip it.
-
-This is cheaper than removing old entries from the heap.
+**Lazy deletion** — the heap may contain stale entries.
+If the popped distance is worse than current best → skip.
 
 ---
 
 ```cpp
+        // Traverse all adjacent neighbors
         for (auto& [neighbor, weight] : graph[node]) {
-            int newDist = dist[node] + weight;
-```
-
-Compute the distance to the neighbor through this node.
-
----
-
-```cpp
-            if (newDist < dist[neighbor]) {
-                dist[neighbor] = newDist;
-                pq.push({newDist, neighbor});
+            // Relaxation check
+            if (dist[node] + weight < dist[neighbor]) {
+                dist[neighbor] = dist[node] + weight;
+                pq.push({dist[neighbor], neighbor});
             }
         }
     }
@@ -248,39 +257,120 @@ Compute the distance to the neighbor through this node.
 }
 ```
 
-If the new distance is shorter → update and push to heap.
+If shorter path found → update distance → push to heap.
 
-The heap ensures we always process the globally closest
-unfinalized node next. This is why Dijkstra works.
-
-**Why Dijkstra fails with negative edges:**
-A node might be "finalized" with distance 10,
-but a negative edge later could reduce it to 7.
-Dijkstra never revisits finalized nodes → misses the improvement.
+**Why lazy deletion works:**
+We don't remove old entries from the heap (expensive).
+Instead, when we pop a stale entry, we just skip it.
+The correct (shorter) entry will be popped first anyway
+because the heap is ordered by distance.
 
 ```
-Time:  O((V + E) log V) -- each push/pop is O(log V)
+Time:  O((V + E) log V)
 Space: O(V + E)
 ```
 
 ---
 
-### Trace Example
+### 4b. Dijkstra with Set
 
+An alternative using `set` instead of `priority_queue`.
+The set allows **explicit deletion** of outdated entries.
+
+```cpp
+vector<int> dijkstra(int V, vector<vector<pair<int,int>>>& graph, int src) {
+    // Set stores {distance, node} in ascending order
+    set<pair<int, int>> st;
+
+    // Distance array
+    vector<int> dist(V, 1e9);
+
+    // Insert source
+    st.insert({0, src});
+    dist[src] = 0;
 ```
-Graph: 0 --1-- 1 --3-- 2
-       0 --4-- 2
 
-Edges: 0→1 (w=1), 1→2 (w=3), 0→2 (w=4)
+The set automatically keeps entries sorted by distance.
+Smallest distance is always at `st.begin()`.
+
+---
+
+```cpp
+    while (!st.empty()) {
+        // Extract the node with minimum distance
+        auto it = *(st.begin());
+        int dis = it.first;
+        int node = it.second;
+        st.erase(it);
 ```
 
-| Pop (d, node) | Update                    | dist after     |
-| ------------- | ------------------------- | -------------- |
-| (0, 0)        | dist[1]=1, dist[2]=4      | [0, 1, 4]      |
-| (1, 1)        | dist[2]=min(4, 1+3=4)=4   | [0, 1, 4]      |
-| (4, 2)        | no updates                | [0, 1, 4]      |
+Pop the smallest entry. Unlike priority_queue,
+we can also erase specific entries later.
 
-Shortest: 0→1 = 1, 0→2 = 4 (via direct edge, same as via 1).
+---
+
+```cpp
+        for (auto& [neighbor, weight] : graph[node]) {
+            if (dis + weight < dist[neighbor]) {
+                // Erase old entry if it exists
+                if (dist[neighbor] != 1e9)
+                    st.erase({dist[neighbor], neighbor});
+
+                // Update distance
+                dist[neighbor] = dis + weight;
+
+                // Insert new entry
+                st.insert({dist[neighbor], neighbor});
+            }
+        }
+    }
+    return dist;
+}
+```
+
+**Key difference from priority_queue version:**
+When a shorter path is found, the OLD entry is **explicitly erased**
+from the set before inserting the new one.
+
+No stale entries remain. No lazy deletion needed.
+
+---
+
+### Set vs Priority Queue -- When to Use Which
+
+| Priority Queue                    | Set                               |
+| --------------------------------- | --------------------------------- |
+| Cannot erase specific entries     | Can erase specific entries        |
+| Uses lazy deletion (skip stale)   | No stale entries (explicit erase) |
+| Slightly faster in practice       | Slightly slower (log N erase)     |
+| Simpler code                      | More code but cleaner state       |
+| **Preferred for interviews**      | Good to know as alternative       |
+
+Both are O((V+E) log V). Priority queue is the standard choice.
+
+---
+
+### Why Priority Queue Is Used in Dijkstra
+
+**Why not a regular queue (BFS)?**
+BFS processes nodes in FIFO order — first in, first out.
+This works when all edges have equal weight (distance = hops).
+With different weights, a node discovered later might have
+a SHORTER distance. BFS would process it too late.
+
+**Why a min-heap?**
+The min-heap always gives us the globally closest unfinalized node.
+Processing nodes in order of distance guarantees that
+when we finalize a node, no shorter path to it exists.
+
+**Why not sort all nodes by distance?**
+Distances change as we discover shorter paths.
+A static sort would be wrong. The heap dynamically maintains
+the correct order as distances are updated.
+
+> _"The heap is the Oracle's compass.
+> It always points to the nearest unexplored node.
+> Process the nearest first — and its distance is final."_
 
 ---
 
@@ -295,49 +385,106 @@ Bellman-Ford handles negative edges (but NOT negative cycles).
 Relax ALL edges V-1 times.
 After V-1 iterations, all shortest paths are found
 (a shortest path has at most V-1 edges).
+
+Nth relaxation: if any distance still improves → negative cycle exists.
 ```
 
 ### The Algorithm
 
 ```cpp
-vector<int> bellmanFord(int start, int n, vector<tuple<int,int,int>>& edges) {
-    vector<int> dist(n, INT_MAX);
-    dist[start] = 0;
+vector<int> bellmanFord(int V, vector<vector<int>>& edges, int src) {
+    vector<int> dist(V, 1e8);
+    dist[src] = 0;
 ```
+
+All distances start at `1e8` (large value, not INT_MAX to avoid overflow).
+Source = 0.
 
 ---
 
 ```cpp
-    for (int i = 0; i < n - 1; i++) {
-        for (auto& [u, v, w] : edges) {
-            if (dist[u] != INT_MAX && dist[u] + w < dist[v]) {
-                dist[v] = dist[u] + w;
+    // V-1 iterations of relaxation
+    for (int i = 0; i < V - 1; i++) {
+        for (auto& e : edges) {
+            int u = e[0];
+            int v = e[1];
+            int wt = e[2];
+            if (dist[u] != 1e8 && dist[u] + wt < dist[v]) {
+                dist[v] = dist[u] + wt;
             }
         }
     }
 ```
 
-Repeat V-1 times: for every edge, try to improve the distance.
+Repeat V-1 times: for every edge `u→v` with weight `wt`,
+if `u` is reachable AND going through `u` is shorter → update `v`.
 
-`dist[u] != INT_MAX` prevents relaxing from unreachable nodes.
+**Why V-1 iterations?**
+A shortest path in a graph with V nodes has at most V-1 edges.
+Each iteration guarantees at least one more edge of the shortest path is finalized.
+After V-1 iterations, all shortest paths (up to V-1 edges) are found.
+
+**Why `dist[u] != 1e8`?**
+Don't relax from unreachable nodes.
+`1e8 + wt` would give a meaningless distance.
 
 ---
 
-### Detecting Negative Cycles
+### Nth Relaxation -- Detect Negative Cycle
 
 ```cpp
-    for (auto& [u, v, w] : edges) {
-        if (dist[u] != INT_MAX && dist[u] + w < dist[v]) {
-            // NEGATIVE CYCLE DETECTED
-            return {};
+    // Nth relaxation to check negative cycle
+    for (auto& e : edges) {
+        int u = e[0];
+        int v = e[1];
+        int wt = e[2];
+        if (dist[u] != 1e8 && dist[u] + wt < dist[v]) {
+            return {-1};
         }
     }
     return dist;
 }
 ```
 
-One more pass. If any distance can still be improved →
-a negative cycle exists (distances can decrease infinitely).
+One more pass (the Vth iteration).
+If ANY distance can still be improved → a negative cycle exists.
+
+**Why?**
+After V-1 iterations, all shortest paths are finalized
+(assuming no negative cycles). If a Vth iteration still finds
+a shorter path → distances can decrease infinitely → negative cycle.
+
+> _"V-1 iterations find all honest shortest paths.
+> The Vth iteration catches the liars --
+> paths that keep getting shorter forever
+> because they loop through negative weight."_
+
+---
+
+### Trace (V=6, S=0)
+
+```
+Edges: {3,2,6},{5,3,1},{0,1,5},{1,5,-3},{1,2,-2},{3,4,-2},{2,4,3}
+
+Initial: dist = [0, 1e8, 1e8, 1e8, 1e8, 1e8]
+```
+
+**Iteration 1:**
+- Edge 0→1 (5): dist[1] = 0+5 = 5
+- Edge 1→5 (-3): dist[5] = 5+(-3) = 2
+- Edge 1→2 (-2): dist[2] = 5+(-2) = 3
+- Edge 5→3 (1): dist[3] = 2+1 = 3
+- Edge 3→2 (6): dist[2] = min(3, 3+6) = 3 (no change)
+- Edge 3→4 (-2): dist[4] = 3+(-2) = 1
+- Edge 2→4 (3): dist[4] = min(1, 3+3) = 1 (no change)
+
+After iter 1: `dist = [0, 5, 3, 3, 1, 2]`
+
+**Iterations 2-5:** no further improvements (already optimal).
+
+**Nth relaxation:** no improvement → no negative cycle.
+
+**Answer: [0, 5, 3, 3, 1, 2]** ✓
 
 ```
 Time:  O(V × E)
@@ -354,8 +501,8 @@ Works with ANY weights (positive, negative, zero).
 ### The Idea
 
 ```
-1. Topological sort the DAG.
-2. Process nodes in topological order.
+1. DFS Topological sort the DAG (vis[] + stack).
+2. Pop nodes from stack (topological order).
 3. For each node, relax all outgoing edges.
 ```
 
@@ -363,55 +510,154 @@ Processing in topological order guarantees that
 when we process node `u`, all nodes that could
 contribute to `u`'s shortest path have already been processed.
 
-### The Algorithm
+### Step 1 -- DFS Topological Sort
 
 ```cpp
-vector<int> dagShortestPath(int start, int n, vector<vector<pair<int,int>>>& graph) {
-    // Step 1: Topological sort (Kahn's)
-    vector<int> inDegree(n, 0);
-    for (int u = 0; u < n; u++)
-        for (auto& [v, w] : graph[u])
-            inDegree[v]++;
+void topoSort(int node, vector<pair<int, int>> adj[], int vis[], stack<int>& st) {
+    vis[node] = 1;
+    for (auto it : adj[node]) {
+        int v = it.first;
+        if (!vis[v]) {
+            topoSort(v, adj, vis, st);
+        }
+    }
+    st.push(node);
+}
+```
 
-    queue<int> q;
-    for (int i = 0; i < n; i++)
-        if (inDegree[i] == 0) q.push(i);
+Standard DFS topo sort — push node AFTER all descendants are done.
+Uses `pair<int,int>` adjacency list: `{neighbor, weight}`.
 
-    vector<int> topo;
-    while (!q.empty()) {
-        int node = q.front(); q.pop();
-        topo.push_back(node);
-        for (auto& [next, w] : graph[node])
-            if (--inDegree[next] == 0) q.push(next);
+---
+
+### Step 2 -- Relax in Topological Order
+
+```cpp
+vector<int> shortestPath(int N, int M, vector<vector<int>>& edges) {
+    // Build weighted adjacency list
+    vector<pair<int, int>> adj[N];
+    for (int i = 0; i < M; i++) {
+        int u = edges[i][0];
+        int v = edges[i][1];
+        int wt = edges[i][2];
+        adj[u].push_back({v, wt});
     }
 ```
 
-Standard Kahn's topological sort.
+Build directed weighted graph. DAG — no reverse edges.
 
 ---
 
 ```cpp
-    // Step 2: Relax in topological order
-    vector<int> dist(n, INT_MAX);
-    dist[start] = 0;
+    // Topological sort using DFS
+    int vis[N] = {0};
+    stack<int> st;
+    for (int i = 0; i < N; i++) {
+        if (!vis[i]) {
+            topoSort(i, adj, vis, st);
+        }
+    }
+```
 
-    for (int u : topo) {
-        if (dist[u] == INT_MAX) continue;
-        for (auto& [v, w] : graph[u]) {
-            if (dist[u] + w < dist[v]) {
-                dist[v] = dist[u] + w;
+Get topological order in the stack.
+
+---
+
+```cpp
+    // Initialize distances to infinity
+    vector<int> dist(N);
+    for (int i = 0; i < N; i++) dist[i] = 1e9;
+
+    // Source = node 0
+    dist[0] = 0;
+```
+
+All distances start at infinity. Source (node 0) = 0.
+
+---
+
+```cpp
+    // Process nodes in topological order
+    while (!st.empty()) {
+        int node = st.top();
+        st.pop();
+
+        // Relax all outgoing edges
+        for (auto it : adj[node]) {
+            int v = it.first;
+            int wt = it.second;
+            if (dist[node] + wt < dist[v]) {
+                dist[v] = wt + dist[node];
             }
         }
+    }
+```
+
+Pop nodes from stack = topological order.
+For each node, try to improve distances to all its neighbors.
+
+**Why this works:**
+When we process node `u`, every node that has an edge TO `u`
+has already been processed (topological guarantee).
+So `dist[u]` is already finalized when we use it for relaxation.
+
+---
+
+```cpp
+    // Replace unreachable with -1
+    for (int i = 0; i < N; i++) {
+        if (dist[i] == 1e9) dist[i] = -1;
     }
     return dist;
 }
 ```
 
-Process each node in topological order.
-Relax all outgoing edges.
+Nodes still at infinity are unreachable → mark as -1.
+
+---
+
+### Trace (N=6, source=0)
 
 ```
-Time:  O(V + E) -- the fastest possible
+Edges: {0,1,2},{0,4,1},{4,5,4},{4,2,2},{1,2,3},{2,3,6},{5,3,1}
+
+Graph:
+  0 → 1(2), 4(1)
+  1 → 2(3)
+  2 → 3(6)
+  4 → 5(4), 2(2)
+  5 → 3(1)
+
+Topo order (from stack): 0, 4, 5, 1, 2, 3
+```
+
+| Process node | Relax edges                          | dist after              |
+| ------------ | ------------------------------------ | ----------------------- |
+| 0            | 0→1: 0+2=2, 0→4: 0+1=1             | [0, 2, 1e9, 1e9, 1, 1e9] |
+| 4            | 4→5: 1+4=5, 4→2: 1+2=3             | [0, 2, 3, 1e9, 1, 5]   |
+| 5            | 5→3: 5+1=6                          | [0, 2, 3, 6, 1, 5]     |
+| 1            | 1→2: 2+3=5 > 3, no update           | [0, 2, 3, 6, 1, 5]     |
+| 2            | 2→3: 3+6=9 > 6, no update           | [0, 2, 3, 6, 1, 5]     |
+| 3            | no outgoing edges                    | [0, 2, 3, 6, 1, 5]     |
+
+**Answer: [0, 2, 3, 6, 1, 5]** ✓
+
+---
+
+### Why This Is Faster Than Dijkstra for DAGs
+
+| Dijkstra                          | DAG Topo Sort + Relaxation        |
+| --------------------------------- | --------------------------------- |
+| O((V+E) log V)                    | O(V + E)                          |
+| Needs a heap                      | No heap needed                    |
+| Works on any non-negative graph   | Only works on DAGs                |
+| Cannot handle negative weights    | Handles negative weights fine     |
+
+If the graph is a DAG → always use topo sort + relaxation.
+It's faster AND handles negative weights.
+
+```
+Time:  O(V + E)
 Space: O(V + E)
 ```
 
@@ -431,35 +677,115 @@ For each intermediate node k (0 to V-1):
 
 "Can going through node k improve the path from i to j?"
 
-### The Algorithm
+### The Algorithm (with -1 as "no edge" sentinel)
 
 ```cpp
-vector<vector<int>> floydWarshall(int n, vector<vector<int>>& dist) {
-    // dist[i][j] initialized from edges. INT_MAX if no edge. 0 on diagonal.
+void shortest_distance(vector<vector<int>>& matrix) {
+    int n = matrix.size();
 
+    // For each intermediate node k
     for (int k = 0; k < n; k++) {
         for (int i = 0; i < n; i++) {
             for (int j = 0; j < n; j++) {
-                if (dist[i][k] != INT_MAX && dist[k][j] != INT_MAX) {
-                    dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
+
+                // If k is not reachable from i, or j not reachable from k, skip
+                if (matrix[i][k] == -1 || matrix[k][j] == -1)
+                    continue;
+
+                // If no direct path from i to j exists
+                if (matrix[i][j] == -1) {
+                    matrix[i][j] = matrix[i][k] + matrix[k][j];
+                }
+                // Else update to minimum of both paths
+                else {
+                    matrix[i][j] = min(matrix[i][j],
+                                       matrix[i][k] + matrix[k][j]);
                 }
             }
         }
     }
-    return dist;
 }
 ```
 
-The `k` loop MUST be the outermost loop.
-This ensures that when considering `k` as intermediate,
-all paths through nodes `0..k-1` are already computed.
+**Key differences from INT_MAX version:**
+
+-   `-1` means "no edge" (not infinity).
+-   Must check `== -1` before adding (can't add to -1).
+-   Two cases: no existing path (`== -1` → just assign) vs existing path (take min).
+
+---
+
+### Why `-1` Instead of INT_MAX?
+
+Some problems (like GFG) use `-1` to represent "no edge."
+The logic is slightly different:
+
+| INT_MAX sentinel                  | -1 sentinel                       |
+| --------------------------------- | --------------------------------- |
+| `if (dist[i][k] != INT_MAX && ...)`| `if (matrix[i][k] == -1) continue`|
+| Single min() call                 | Two cases: assign or min          |
+| Risk of overflow (INT_MAX + w)    | No overflow risk                  |
+
+Both are correct. Use whichever the problem expects.
+
+---
+
+### The `k` Loop MUST Be Outermost
+
+```
+CORRECT:  for k → for i → for j
+WRONG:    for i → for j → for k
+```
+
+Why? When considering `k` as intermediate,
+we need ALL paths through nodes `0..k-1` to already be computed.
+The outer `k` loop ensures this.
+
+If `k` is inner, we'd try to use node 5 as intermediate
+before we've found paths through nodes 0-4. Wrong results.
+
+---
+
+### Trace (4 nodes)
+
+```
+Initial matrix:
+  0  2 -1 -1
+  1  0  3 -1
+ -1 -1  0 -1
+  3  5  4  0
+```
+
+**k=0:** Can going through node 0 improve any path?
+- matrix[1][0]=1, matrix[0][1]=2 → matrix[1][1] already 0, skip.
+- matrix[3][0]=3, matrix[0][1]=2 → matrix[3][1] = min(5, 3+2) = 5 (no change).
+
+**k=1:** Can going through node 1 improve any path?
+- matrix[0][1]=2, matrix[1][2]=3 → matrix[0][2] = -1 → set to 2+3=5.
+- matrix[3][1]=5, matrix[1][2]=3 → matrix[3][2] = min(4, 5+3) = 4 (no change).
+
+**k=2:** Can going through node 2 improve any path?
+- matrix[0][2]=5, matrix[2][...] all -1 except matrix[2][2]=0. No improvements.
+
+**k=3:** Can going through node 3 improve any path?
+- matrix[0][3]=-1, skip row 0.
+- matrix[1][3]=-1, skip row 1.
+- matrix[2][3]=-1, skip row 2.
+
+```
+Final matrix:
+  0  2  5 -1
+  1  0  3 -1
+ -1 -1  0 -1
+  3  5  4  0
+```
+
+**Detecting negative cycles:** if `matrix[i][i] < 0` for any `i` → negative cycle.
 
 ```
 Time:  O(V³)
-Space: O(V²)
+Space: O(V²) -- in-place modification of the matrix
 ```
-
-**Detecting negative cycles:** if `dist[i][i] < 0` for any `i` → negative cycle.
 
 ---
 

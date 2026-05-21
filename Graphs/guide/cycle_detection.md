@@ -228,6 +228,8 @@ Space: O(V)
 
 Same idea as DFS, but using a queue.
 
+### The BFS Function
+
 ```cpp
 bool hasCycleBFS(int start, vector<vector<int>>& graph,
                  vector<bool>& visited) {
@@ -237,14 +239,22 @@ bool hasCycleBFS(int start, vector<vector<int>>& graph,
 ```
 
 Queue holds `{node, parent}` pairs.
+Mark the starting node visited immediately.
 
 ---
 
 ```cpp
     while (!q.empty()) {
-        auto [node, parent] = q.front();
+        int node = q.front().first;
+        int parent = q.front().second;
         q.pop();
+```
 
+Dequeue a node and its parent.
+
+---
+
+```cpp
         for (int neighbor : graph[node]) {
             if (!visited[neighbor]) {
                 visited[neighbor] = true;
@@ -268,7 +278,91 @@ Unvisited neighbor → mark visited, enqueue with `node` as parent.
 
 Visited neighbor that isn't the parent → cycle.
 
-Same logic as DFS, just iterative.
+If the neighbor is visited AND it's not the node we came from,
+then someone else reached it through a different path. Cycle found.
+
+> _"If I meet a visited node that isn't my parent --
+> two different paths reached the same node.
+> That means a loop exists."_
+
+---
+
+### The Main Function
+
+```cpp
+bool hasCycle(int n, vector<vector<int>>& graph) {
+    vector<bool> visited(n, false);
+
+    for (int i = 0; i < n; i++) {
+        if (!visited[i]) {
+            if (hasCycleBFS(i, graph, visited)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+```
+
+Start BFS from every unvisited node (handles disconnected graphs).
+If any component has a cycle → return `true`.
+
+---
+
+### Trace for a Triangle (Cycle)
+
+```
+Graph: 0 -- 1 -- 2 -- 0
+graph[0] = {1, 2}
+graph[1] = {0, 2}
+graph[2] = {1, 0}
+
+BFS from 0 (parent -1):
+  Queue: [{0, -1}]. visited[0] = true.
+
+  Dequeue {0, -1}:
+    neighbor 1: unvisited → visited[1]=true, enqueue {1, 0}.
+    neighbor 2: unvisited → visited[2]=true, enqueue {2, 0}.
+
+  Dequeue {1, 0}:
+    neighbor 0: visited, IS parent (0) → skip.
+    neighbor 2: visited, NOT parent (parent=0, neighbor=2) → CYCLE!
+```
+
+**Result: true** ✓
+
+Node 1's parent is 0. When node 1 sees neighbor 2 already visited,
+and 2 is NOT its parent → a cycle is confirmed.
+
+---
+
+### Trace for a Chain (No Cycle)
+
+```
+Graph: 0 -- 1 -- 2 -- 3
+graph[0] = {1}
+graph[1] = {0, 2}
+graph[2] = {1, 3}
+graph[3] = {2}
+
+BFS from 0 (parent -1):
+  Dequeue {0, -1}: neighbor 1 unvisited → enqueue {1, 0}.
+  Dequeue {1, 0}: neighbor 0 visited, IS parent → skip.
+                   neighbor 2 unvisited → enqueue {2, 1}.
+  Dequeue {2, 1}: neighbor 1 visited, IS parent → skip.
+                   neighbor 3 unvisited → enqueue {3, 2}.
+  Dequeue {3, 2}: neighbor 2 visited, IS parent → skip.
+  Queue empty.
+```
+
+**Result: false** ✓
+
+Every visited neighbor encountered was the parent. No cycle.
+
+```
+Time:  O(V + E)
+Space: O(V)
+```
 
 ---
 
@@ -504,6 +598,218 @@ No cycle.
 Time:  O(V + E)
 Space: O(V)
 ```
+
+---
+
+## 5b. Directed Graph -- DFS with vis[] + pathVis[] (Two-Array Approach)
+
+An equivalent approach using **two separate arrays**
+instead of one three-color array.
+
+```
+vis[node]     = has this node EVER been visited? (global visited)
+pathVis[node] = is this node on the CURRENT DFS path? (recursion stack)
+```
+
+**Why two arrays instead of three colors?**
+
+They encode the same information differently:
+-   `vis=0, pathVis=0` → WHITE (unvisited)
+-   `vis=1, pathVis=1` → GRAY (on current path)
+-   `vis=1, pathVis=0` → BLACK (visited but not on current path)
+
+Some people find two boolean arrays more intuitive
+than one array with three states.
+
+### The DFS Function
+
+```cpp
+bool dfsCheck(int node, vector<vector<int>>& graph,
+              vector<int>& vis, vector<int>& pathVis) {
+    vis[node] = 1;
+    pathVis[node] = 1;
+```
+
+Mark the node as visited (globally) AND on the current path.
+
+---
+
+### Traverse Adjacent Nodes
+
+```cpp
+    for (int neighbor : graph[node]) {
+```
+
+Check every outgoing edge.
+
+---
+
+### Unvisited Neighbor → Recurse
+
+```cpp
+        if (!vis[neighbor]) {
+            if (dfsCheck(neighbor, graph, vis, pathVis) == true)
+                return true;
+        }
+```
+
+The neighbor has never been visited.
+Explore it. If it finds a cycle → propagate `true`.
+
+---
+
+### Visited AND on Current Path → Cycle!
+
+```cpp
+        else if (pathVis[neighbor]) {
+            return true;
+        }
+    }
+```
+
+The neighbor is visited (`vis[neighbor] = 1`)
+AND it's on the current DFS path (`pathVis[neighbor] = 1`).
+
+This is a back edge. A cycle exists.
+
+If `vis[neighbor] = 1` but `pathVis[neighbor] = 0` →
+the node was visited in a PREVIOUS DFS path (fully explored).
+NOT a cycle. Skip it. (This is the BLACK equivalent.)
+
+> _"Visited alone is not enough to declare a cycle.
+> It must also be on MY current path.
+> A node visited by a previous exploration
+> is already proven safe."_
+
+---
+
+### Backtrack -- Remove from Current Path
+
+```cpp
+    pathVis[node] = 0;
+    return false;
+}
+```
+
+**This is the critical line.**
+
+When the DFS finishes exploring this node and backtracks,
+remove it from the current path (`pathVis[node] = 0`).
+
+But `vis[node]` stays `1` -- it remains globally visited.
+Future DFS calls from other starting nodes will see it as
+"visited but not on current path" → skip (no cycle).
+
+This is equivalent to marking BLACK in the three-color system.
+
+> _"I leave the current path.
+> But I remain in the global memory.
+> Future explorers will know I am safe --
+> they will not waste time re-exploring me."_
+
+---
+
+### The Main Function
+
+```cpp
+bool isCyclic(int n, vector<vector<int>>& graph) {
+    vector<int> vis(n, 0);
+    vector<int> pathVis(n, 0);
+
+    for (int i = 0; i < n; i++) {
+        if (!vis[i]) {
+            if (dfsCheck(i, graph, vis, pathVis) == true)
+                return true;
+        }
+    }
+    return false;
+}
+```
+
+Start DFS from every unvisited node.
+If any call finds a cycle → return `true`.
+
+---
+
+### Trace for 11-Node Example (n=11)
+
+```
+graph[0] = {}
+graph[1] = {2}
+graph[2] = {3}
+graph[3] = {4, 7}
+graph[4] = {5}
+graph[5] = {6}
+graph[6] = {}
+graph[7] = {5}
+graph[8] = {9}
+graph[9] = {10}
+graph[10] = {8}   ← cycle: 8→9→10→8
+```
+
+**DFS from node 1:**
+
+```
+dfsCheck(1): vis[1]=1, pathVis[1]=1.
+  → 2: unvisited → recurse.
+    dfsCheck(2): vis[2]=1, pathVis[2]=1.
+      → 3: unvisited → recurse.
+        dfsCheck(3): vis[3]=1, pathVis[3]=1.
+          → 4: unvisited → recurse.
+            dfsCheck(4): vis[4]=1, pathVis[4]=1.
+              → 5: unvisited → recurse.
+                dfsCheck(5): vis[5]=1, pathVis[5]=1.
+                  → 6: unvisited → recurse.
+                    dfsCheck(6): vis[6]=1, pathVis[6]=1.
+                      No neighbors. pathVis[6]=0. Return false.
+                  pathVis[5]=0. Return false.
+              pathVis[4]=0. Return false.
+          → 7: unvisited → recurse.
+            dfsCheck(7): vis[7]=1, pathVis[7]=1.
+              → 5: vis[5]=1, pathVis[5]=0 → NOT on current path → skip.
+            pathVis[7]=0. Return false.
+        pathVis[3]=0. Return false.
+      pathVis[2]=0. Return false.
+    pathVis[1]=0. Return false.
+```
+
+No cycle found from node 1's component.
+
+**DFS from node 8:**
+
+```
+dfsCheck(8): vis[8]=1, pathVis[8]=1.
+  → 9: unvisited → recurse.
+    dfsCheck(9): vis[9]=1, pathVis[9]=1.
+      → 10: unvisited → recurse.
+        dfsCheck(10): vis[10]=1, pathVis[10]=1.
+          → 8: vis[8]=1, pathVis[8]=1 → ON CURRENT PATH → CYCLE!
+          Return true.
+        Return true.
+      Return true.
+    Return true.
+```
+
+**Result: true** ✓
+
+The cycle `8→9→10→8` was detected because when node 10
+tried to visit node 8, it found `pathVis[8] = 1` --
+node 8 was still on the current DFS path.
+
+---
+
+### Three-Color vs vis[]+pathVis[] -- Equivalence
+
+| Three-Color (single array)        | vis[] + pathVis[] (two arrays)    |
+| --------------------------------- | --------------------------------- |
+| `color[node] = 0` (WHITE)        | `vis[node]=0, pathVis[node]=0`   |
+| `color[node] = 1` (GRAY)         | `vis[node]=1, pathVis[node]=1`   |
+| `color[node] = 2` (BLACK)        | `vis[node]=1, pathVis[node]=0`   |
+| Check `color[nb] == 1` for cycle | Check `pathVis[nb] == 1` for cycle |
+| Set `color = 2` when done        | Set `pathVis = 0` when backtracking |
+
+**They are the same algorithm.** Just different encoding.
+Use whichever you find easier to recall under pressure.
 
 ---
 

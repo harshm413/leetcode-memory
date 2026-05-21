@@ -215,9 +215,10 @@ Space: O(V + E)
 
 ---
 
-## 4. DFS Reverse Post-Order
+## 4. DFS Topological Sort -- Simple (vis[] + Stack)
 
-An alternative using DFS instead of BFS.
+The simplest DFS approach. Assumes the graph is a DAG.
+No cycle detection. Just `vis[]` + stack.
 
 ### The Idea
 
@@ -228,6 +229,152 @@ It should come FIRST in topological order.
 By pushing nodes onto a stack AFTER all their descendants
 are fully explored (post-order), then reversing --
 we get a valid topological order.
+
+### The DFS Function
+
+```cpp
+void dfs(int node, vector<vector<int>>& graph, vector<int>& vis, stack<int>& st) {
+    vis[node] = 1;
+```
+
+Mark the current node as visited.
+
+---
+
+```cpp
+    for (int neighbor : graph[node]) {
+        if (!vis[neighbor]) {
+            dfs(neighbor, graph, vis, st);
+        }
+    }
+```
+
+Explore all unvisited neighbors. Go as deep as possible.
+
+---
+
+```cpp
+    st.push(node);
+}
+```
+
+**After ALL neighbors are fully explored** → push this node.
+
+This is the key. The node goes on the stack only AFTER
+everything it depends on (its descendants) is already pushed below it.
+
+When we pop the stack later:
+this node comes out BEFORE its descendants. Correct order.
+
+> _"I do not announce myself until all my descendants are done.
+> They sit below me in the stack.
+> When reversed -- I come first, they follow.
+> Prerequisites before dependents."_
+
+---
+
+### The Main Function
+
+```cpp
+vector<int> topoSort(int n, vector<vector<int>>& graph) {
+    vector<int> vis(n, 0);
+    stack<int> st;
+
+    for (int i = 0; i < n; i++) {
+        if (!vis[i]) {
+            dfs(i, graph, vis, st);
+        }
+    }
+
+    vector<int> ans;
+    while (!st.empty()) {
+        ans.push_back(st.top());
+        st.pop();
+    }
+    return ans;
+}
+```
+
+Start DFS from every unvisited node (handles disconnected components).
+Pop the stack → topological order.
+
+---
+
+### Full Trace (n=6)
+
+```
+graph[5] = {0, 2}
+graph[4] = {0, 1}
+graph[2] = {3}
+graph[3] = {1}
+graph[0] = {}
+graph[1] = {}
+
+Graph:
+  5 → 0, 2
+  4 → 0, 1
+  2 → 3
+  3 → 1
+```
+
+**DFS from node 0:** vis[0]=1. No neighbors. Push 0. Stack: [0]
+
+**DFS from node 1:** vis[1]=1. No neighbors. Push 1. Stack: [0, 1]
+
+**DFS from node 2:** vis[2]=1.
+  → 3: unvisited → recurse.
+    vis[3]=1. → 1: visited, skip. Push 3. Stack: [0, 1, 3]
+  Push 2. Stack: [0, 1, 3, 2]
+
+**DFS from node 3:** already visited. Skip.
+
+**DFS from node 4:** vis[4]=1.
+  → 0: visited, skip.
+  → 1: visited, skip.
+  Push 4. Stack: [0, 1, 3, 2, 4]
+
+**DFS from node 5:** vis[5]=1.
+  → 0: visited, skip.
+  → 2: visited, skip.
+  Push 5. Stack: [0, 1, 3, 2, 4, 5]
+
+**Pop stack:** 5, 4, 2, 3, 1, 0.
+
+**Answer: [5, 4, 2, 3, 1, 0]** ✓
+
+Verify: edge 5→0 (5 before 0 ✓), edge 5→2 (5 before 2 ✓),
+edge 4→0 (4 before 0 ✓), edge 4→1 (4 before 1 ✓),
+edge 2→3 (2 before 3 ✓), edge 3→1 (3 before 1 ✓). All satisfied.
+
+---
+
+### Why This Works Without Cycle Detection
+
+This simple version assumes the input is a **DAG**.
+If the problem guarantees no cycle (like "given a DAG, find topo order"),
+you don't need three colors or pathVis.
+
+If cycles ARE possible (like Course Schedule),
+use the three-color version below or Kahn's BFS
+(which detects cycles via `order.size() != n`).
+
+---
+
+### When to Use This Simple Version
+
+-   Problem says "given a DAG" → use this.
+-   Problem says "if cycle exists return empty" → use three-color or Kahn's.
+
+```
+Time:  O(V + E)
+Space: O(V)
+```
+
+---
+
+## 4b. DFS Topological Sort -- With Cycle Detection (Three-Color)
+
+When the graph might have cycles, add the three-color system.
 
 ### The Three-Color DFS
 
