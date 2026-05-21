@@ -1,194 +1,358 @@
-## 🔥 _The Paths of Infinite Offerings: The Combination Sum Saga_
+## 🔥🎯 _The Paths of Infinite Offerings: The Combination Sum Saga_
 
-> \*"In the Realm of Sacred Numbers,
-> the Oracle was given a target —
-> an offering that must be matched exactly.
-> Before her stood candidates, each a flame of power,
-> and she was told:
-> ‘Use any flame as many times as needed.
-> Explore all paths.
-> Find every combination whose total equals the sacred sum.’
+> \_"The Oracle was given an array of DISTINCT candidates
+> and a target sum.
 >
-> Thus she entered the Shrine of Backtracking,
-> where choices are made…
-> and unmade…
-> until every valid path is revealed."\*
+> She was commanded:
+>
+> **'Find ALL unique combinations where the candidates
+> sum to the target.
+> The SAME candidate may be used UNLIMITED times.'**
+>
+> The Oracle recognized this as the Subsets pattern --
+> but with two twists:
+>
+> **Twist 1 -- Unlimited reuse.**
+> In Subsets, each element is used at most once (`start = i + 1`).
+> Here, the same element can be picked again (`start = i`).
+>
+> **Twist 2 -- Target constraint.**
+> In Subsets, every state is valid.
+> Here, only states where `target == 0` are valid.
+> If `target < 0` → prune (dead end).
+>
+> Sort the array for early pruning.
+> When `candidates[i] > target` → break.
+> No point trying larger candidates."\_
 
 ---
 
-In the kingdom of ascending flames (candidate numbers),
-the Oracle was tasked with finding **all combinations**
-whose sum equaled the sacred **target**.
+This is the saga of **Combination Sum**.
 
-Unlike other quests, each flame could be taken **more than once** —
-but the Oracle must keep combinations **non-decreasing**
-and **unique** in structure.
+Given an array `candidates` of **distinct** integers and a `target`:
 
-This journey required **backtracking**:
-a method where the Oracle selects a candidate,
-explores all deeper possibilities,
-and steps back when the path grows too large.
+-   Return all unique combinations where candidates sum to `target`.
+-   The same number may be used **unlimited** times.
+-   Combinations must be in non-decreasing order (no duplicates like [2,3] and [3,2]).
 
-Thus began the saga of **Combination Sum**.
+```
+Input:  candidates = [2, 3, 6, 7], target = 7
+Output: [[2, 2, 3], [7]]
+
+Input:  candidates = [2, 3, 5], target = 8
+Output: [[2, 2, 2, 2], [2, 3, 3], [3, 5]]
+
+Input:  candidates = [2], target = 1
+Output: []
+```
 
 ---
 
-### 📜 The Scroll of Sacred Flames
+## 🧠 The Oracle's Core Insight -- Subsets with Reuse + Target
+
+This is the **Subsets template** modified:
+
+| Subsets                           | Combination Sum                   |
+| --------------------------------- | --------------------------------- |
+| Add every state to result         | Add only when `target == 0`       |
+| Recurse with `i + 1` (use once)  | Recurse with `i` (reuse allowed)  |
+| No pruning                        | Prune when `target < 0` or `candidate > target` |
+
+```
+backtrack(start, target, current):
+  If target == 0: add current to result. Return.
+  If target < 0: return. (overshot)
+
+  For i = start to n-1:
+    If candidates[i] > target: break. (pruning -- sorted array)
+    current.push(candidates[i])
+    backtrack(i, target - candidates[i], current)  ← start = i (reuse!)
+    current.pop()
+```
+
+**Why `start = i` (not `i + 1`)?**
+The same candidate can be used again.
+`backtrack(i, ...)` means "I can pick `candidates[i]` again next time."
+
+**Why sort + break?**
+If `candidates[i] > target`, all candidates after it are also > target (sorted).
+No point continuing. Break early.
+
+```
+Time:  O(2^(target/min) × n) -- exponential but pruned
+Space: O(target/min) -- recursion depth
+```
+
+---
+
+### 📜 The Scroll of the Infinite Offerings
 
 ```cpp
 #include <iostream>
 #include <vector>
+#include <algorithm>
 using namespace std;
 ```
 
-Each flame was a simple number,
-but together they formed a vast space of possibilities.
-
 ---
 
-## 🔥 The Oracle’s Backtracking Ritual
+## 🎯 The Backtracking Ritual
 
 ```cpp
-void backtrack(vector<int>& candidates, int target, int start,
-               vector<int>& path, vector<vector<int>>& res) {
+void backtrack(vector<int>& candidates, int start, int target,
+               vector<int>& current, vector<vector<int>>& result) {
 ```
 
 The Oracle carried:
-
--   **candidates**: the list of available flames
--   **target**: remaining offering amount
--   **start**: index where she may choose flames (to avoid duplicates)
--   **path**: the current combination
--   **res**: final list of valid offerings
+-   `candidates` -- the available numbers.
+-   `start` -- the index from which she may pick (prevents duplicates like [3,2] vs [2,3]).
+-   `target` -- the remaining sum needed.
+-   `current` -- the combination being built.
+-   `result` -- all valid combinations found.
 
 ---
 
-### 🌟 Step 1 — If Target Reached, Record the Offering
+### 🎯 Target Reached -- Valid Combination Found
 
 ```cpp
     if (target == 0) {
-        res.push_back(path);
+        result.push_back(current);
         return;
     }
 ```
 
-When the remaining offering was exactly zero,
-the Oracle bowed — the combination was complete.
+The remaining target is exactly 0.
+The current combination sums to the original target.
+Record it.
+
+> _"The offering is complete.
+> The sum matches the sacred target.
+> Record this combination and return."_
 
 ---
 
-### 🌑 Step 2 — Explore Further Flames
+### 🔁 Try Each Candidate from `start` Onward
 
 ```cpp
-    for (int i = start; i < candidates.size(); i++) {
+    for (int i = start; i < (int)candidates.size(); i++) {
+```
+
+Only pick candidates from `start` onward.
+This ensures combinations are in non-decreasing order --
+preventing duplicates like `[2, 3]` and `[3, 2]`.
+
+---
+
+### ✂️ Pruning -- Candidate Too Large
+
+```cpp
         if (candidates[i] > target) break;
 ```
 
-The Oracle walked through all flames from `start` onward.
-Flames greater than the remaining target could not help
-and were abandoned.
+Since the array is sorted, if `candidates[i] > target`,
+all remaining candidates are also too large. Break.
+
+This is the **key optimization** -- avoids exploring
+branches that can never reach target == 0.
+
+> _"If this flame is already too large for the offering,
+> all flames beyond it are even larger.
+> Stop here. No point continuing."_
 
 ---
 
-### 🔥 Step 3 — Choose the Flame
+### 🔥 Choose This Candidate
 
 ```cpp
-        path.push_back(candidates[i]);
+        current.push_back(candidates[i]);
 ```
 
-The Oracle took a flame into her hands,
-adding it to the current offering.
+Add the candidate to the current combination.
 
 ---
 
-### 🔁 Step 4 — Descend Deeper
-
-_allowing reuse of the same flame_
+### 🔁 Recurse -- Same Candidate Can Be Picked Again
 
 ```cpp
-        backtrack(candidates, target - candidates[i], i, path, res);
+        backtrack(candidates, i, target - candidates[i], current, result);
 ```
 
-She descended further,
-using the same flame again (index `i`),
-or exploring greater flames.
+**`start = i`** (not `i + 1`) -- the same candidate can be reused.
+**`target - candidates[i]`** -- reduce the remaining target.
+
+This is the key difference from Subsets:
+-   Subsets: `backtrack(i + 1, ...)` → use each element once.
+-   Combination Sum: `backtrack(i, ...)` → unlimited reuse.
+
+> _"The same flame can be taken again.
+> Its supply is infinite.
+> Only when the target is met or exceeded
+> does the path end."_
 
 ---
 
-### 🔄 Step 5 — Backtrack
-
-_undo the choice_
+### 🔄 Backtrack -- Undo the Choice
 
 ```cpp
-        path.pop_back();
+        current.pop_back();
     }
 }
 ```
 
-When the path dead-ended or succeeded,
-the Oracle gently returned the flame,
-restoring the previous state.
+Remove the candidate. Try the next one in the loop.
 
 ---
 
-## 🔮 The Invocation of the Sacred Quest
+## 🔮 The Main Function
 
 ```cpp
 vector<vector<int>> combinationSum(vector<int>& candidates, int target) {
     sort(candidates.begin(), candidates.end());
-    vector<vector<int>> res;
-    vector<int> path;
-    backtrack(candidates, target, 0, path, res);
-    return res;
+    vector<vector<int>> result;
+    vector<int> current;
+    backtrack(candidates, 0, target, current, result);
+    return result;
 }
 ```
 
-The flames were sorted to maintain order,
-and the ritual began.
+**Sort first** -- enables the `break` pruning.
+Start from index 0 with the full target.
 
 ---
 
-### 🎺 The Trial of the Sacred Flames
+### 🎺 The Trial of the Infinite Offerings
 
 ```cpp
 int main() {
-    vector<int> candidates = {2, 3, 6, 7};
-    int target = 7;
-
-    vector<vector<int>> ans = combinationSum(candidates, target);
-
-    for (auto& combo : ans) {
+    vector<int> c1 = {2, 3, 6, 7};
+    auto r1 = combinationSum(c1, 7);
+    for (auto& combo : r1) {
         for (int x : combo) cout << x << " ";
         cout << endl;
     }
+    // expected:
+    // 2 2 3
+    // 7
+
+    vector<int> c2 = {2, 3, 5};
+    auto r2 = combinationSum(c2, 8);
+    for (auto& combo : r2) {
+        for (int x : combo) cout << x << " ";
+        cout << endl;
+    }
+    // expected:
+    // 2 2 2 2
+    // 2 3 3
+    // 3 5
+
     return 0;
 }
 ```
 
-The Oracle found two offerings:
+---
 
--   `2 2 3` (2+2+3 = 7)
--   `7` (7 = 7)
+**Full recursion trace for candidates = [2, 3, 6, 7], target = 7:**
 
-Both perfectly matched the sacred target.
+```
+(sorted: [2, 3, 6, 7])
+
+backtrack(start=0, target=7, current=[])
+  i=0: pick 2. target=5. current=[2].
+    backtrack(start=0, target=5, current=[2])
+      i=0: pick 2. target=3. current=[2,2].
+        backtrack(start=0, target=3, current=[2,2])
+          i=0: pick 2. target=1. current=[2,2,2].
+            backtrack(start=0, target=1, current=[2,2,2])
+              i=0: candidates[0]=2 > target(1) → BREAK.
+            pop 2. current=[2,2].
+          i=1: pick 3. target=0. current=[2,2,3].
+            → TARGET == 0! ADD [2,2,3]. ✓
+          pop 3. current=[2,2].
+          i=2: candidates[2]=6 > target(3) → BREAK.
+        pop 2. current=[2].
+      i=1: pick 3. target=2. current=[2,3].
+        backtrack(start=1, target=2, current=[2,3])
+          i=1: candidates[1]=3 > target(2) → BREAK.
+        pop 3. current=[2].
+      i=2: pick 6. target=-1... wait, 6 > 5? No, 6 > 5 → BREAK.
+    pop 2. current=[].
+  i=1: pick 3. target=4. current=[3].
+    backtrack(start=1, target=4, current=[3])
+      i=1: pick 3. target=1. current=[3,3].
+        backtrack(start=1, target=1, current=[3,3])
+          i=1: 3 > 1 → BREAK.
+        pop 3. current=[3].
+      i=2: pick 6. 6 > 4 → BREAK.
+    pop 3. current=[].
+  i=2: pick 6. target=1. current=[6].
+    backtrack(start=2, target=1, current=[6])
+      i=2: 6 > 1 → BREAK.
+    pop 6. current=[].
+  i=3: pick 7. target=0. current=[7].
+    → TARGET == 0! ADD [7]. ✓
+  pop 7. current=[].
+```
+
+**Result: [[2, 2, 3], [7]]** ✓
 
 ---
 
-### 🧠 Memory of the Backtracking Shrine
+**Trace for candidates = [2, 3, 5], target = 8:**
 
--   Sort candidates for pruning and consistency.
--   At each step:
+Key paths:
+-   `2→2→2→2` (target: 8→6→4→2→0) → **[2,2,2,2]** ✓
+-   `2→3→3` (target: 8→6→3→0) → **[2,3,3]** ✓
+-   `3→5` (target: 8→5→0) → **[3,5]** ✓
 
-    -   If `target == 0` → record combination
-    -   If `target < 0` → stop
+**Result: [[2,2,2,2], [2,3,3], [3,5]]** ✓
 
--   Use index `start` to avoid duplicated combinations.
--   Allow reuse of each candidate by passing `i` again.
--   **Time:** exponential, but efficient via pruning.
--   **Space:** depth of recursion stack.
+---
+
+## 🔍 The Combination Sum Family
+
+| Problem              | Reuse? | Duplicates in input? | Key difference          |
+| -------------------- | ------ | -------------------- | ----------------------- |
+| **Combination Sum (this)** | ✅ Yes | No (distinct)   | `start = i` (reuse)    |
+| Combination Sum II   | ❌ No  | Yes (duplicates)     | `start = i+1` + skip   |
+| Combination Sum III  | ❌ No  | No (1-9 only)        | Fixed size k            |
+| Subsets              | ❌ No  | No                   | Every state valid       |
+
+---
+
+## 🔍 Why `start = i` Prevents Duplicate Combinations
+
+Without `start`, we'd generate both `[2, 3]` and `[3, 2]`.
+
+With `start = i`, once we move past candidate `2` (i=1 picks `3`),
+we can NEVER go back to pick `2` again.
+So `[3, 2]` is never generated. Only `[2, 3]` exists.
+
+The `start` parameter enforces a non-decreasing order on combinations.
+
+---
+
+### 🧠 Memory of the Infinite Offerings Law
+
+-   **Sort candidates** for pruning
+-   **Backtrack with `start = i`** (not `i+1`) → allows unlimited reuse
+-   **Target == 0** → valid combination found, add to result
+-   **Pruning:** `if (candidates[i] > target) break` → sorted array enables this
+-   **`start` parameter** prevents duplicate combinations (enforces order)
+-   **Difference from Subsets:** only add when target==0, recurse with `i` not `i+1`
+-   **Time:** O(2^(target/min) × n) -- exponential but heavily pruned
+-   **Space:** O(target/min) -- max recursion depth
+-   **Edge cases:**
+    -   Target = 0 → [[]] (empty combination)
+    -   No combination possible → []
+    -   Single candidate divides target → one combination of repeated elements
 
 Thus is remembered the saga of **Combination Sum**,
-where the Oracle walks branching paths of fire,
-choosing, unchoosing,
-and revealing every combination
-that satisfies the sacred offering. 🔥✨
+where the Oracle walked the sorted array of candidates,
+at each step choosing a flame to add to the offering --
+the same flame available again and again --
+reducing the target with each choice,
+pruning when the flame grew too large --
+until the target reached zero
+and the offering was complete,
+or the flames proved insufficient
+and the path was abandoned. 🔥🎯✨

@@ -1,123 +1,161 @@
-## 🔍 _The Quest for the Hidden Word: The Word Search Saga_
+## 🔤🗺️ _The Hunt for the Hidden Word: The Word Search Saga_
 
-> \*"Across the Gridlands lies a tapestry of letters —
-> silent runes arranged in rows and columns.
-> Yet some say a secret word sleeps within,
-> woven not in straight scrolls,
-> but letter by letter, stepping through neighbors.
+> \_"In the Grid of Letters,
+> every cell held a single character.
 >
-> To awaken this hidden word,
-> the Oracle must walk the board,
-> tracing paths, marking her steps,
-> and retreating whenever the trail grows false.
+> The Oracle was given a word.
 >
-> For this is the Saga of Backtracking —
-> the hunt for a word lost inside the very weave of the world."\*
+> She was commanded:
+>
+> **'Does this word exist in the grid?
+> The word can be constructed from letters
+> of sequentially adjacent cells (horizontally or vertically).
+> The same cell may NOT be used more than once.'**
+>
+> The Oracle recognized this as **grid backtracking**:
+>
+> **For each cell that matches the first letter of the word,
+> start a DFS. At each step:
+> -   Does the current cell match the current character?
+> -   If yes → mark visited, try all 4 neighbors for the next character.
+> -   If no → backtrack.
+> -   If the entire word is matched → return true.**
+>
+> The key difference from flood fill:
+> we BACKTRACK (unmark visited) after exploring,
+> because the same cell might be needed
+> for a different path to the same word."\_
 
 ---
 
-In the Land of Letters, the Oracle faced a sacred board,
-a grid where each cell held a character.
-A word — ancient, whispered, fragile — was said to be hidden
-somewhere inside,
-formed by stepping **up, down, left, or right**,
-never revisiting the same cell in a single path.
+This is the saga of **Word Search**.
 
-Her mission:
+Given an `m × n` grid of characters and a string `word`:
 
-> _“Tell us if this word truly exists within the board.”_
+-   Return `true` if `word` exists in the grid.
+-   The word must be formed from adjacent cells (4 directions).
+-   The same cell cannot be used twice in one path.
 
-To succeed, she used **backtracking**,
-the art of stepping forward, checking fate,
-and stepping back when destiny denied the path.
+```
+Input:  board = [["A","B","C","E"],["S","F","C","S"],["A","D","E","E"]], word = "ABCCED"
+Output: true
 
-Thus began the saga of **Word Search**.
+Input:  board = [["A","B","C","E"],["S","F","C","S"],["A","D","E","E"]], word = "SEE"
+Output: true
+
+Input:  board = [["A","B","C","E"],["S","F","C","S"],["A","D","E","E"]], word = "ABCB"
+Output: false
+```
 
 ---
 
-### 📜 The Scroll of Runes
+## 🧠 The Oracle's Core Insight -- DFS with Backtracking on Grid
+
+For each cell `(r, c)` that matches `word[0]`:
+start a DFS trying to match the rest of the word character by character.
+
+```
+dfs(r, c, index):
+  If index == word.size(): return true. (entire word matched)
+  If out of bounds OR cell != word[index] OR cell is visited: return false.
+
+  Mark cell as visited.
+  Try all 4 neighbors with index + 1.
+  If any returns true → return true.
+  Unmark cell (backtrack).
+  Return false.
+```
+
+**Why backtrack (unmark)?**
+
+Unlike Number of Islands where we permanently sink cells,
+here the same cell might be part of a DIFFERENT valid path.
+If we don't unmark, we'd block future attempts.
+
+```
+Time:  O(m × n × 4^L) where L = word length (worst case)
+Space: O(L) -- recursion depth = word length
+```
+
+---
+
+### 📜 The Scroll of the Hidden Word
 
 ```cpp
 #include <iostream>
 #include <vector>
+#include <string>
 using namespace std;
 ```
 
-The letters lay in a grid,
-silent and unmoving —
-until the Oracle began her search.
-
 ---
 
-## 🧭 The Oracle’s Path-Walking Ritual
-
-_DFS + backtracking on each cell_
+## 🔤 The DFS Backtracking Function
 
 ```cpp
-bool dfs(vector<vector<char>>& board, int r, int c,
-         string& word, int idx) {
+bool dfs(vector<vector<char>>& board, string& word,
+         int r, int c, int index) {
+    int rows = board.size();
+    int cols = board[0].size();
 ```
-
-The Oracle stepped onto cell `(r, c)`
-to match character `word[idx]`.
 
 ---
 
-### 🧱 Step 1 — Boundary & Character Check
+### 🎯 Base Case -- Entire Word Matched
 
 ```cpp
-    if (idx == word.size()) return true;
-    if (r < 0 || c < 0 || r >= board.size() || c >= board[0].size())
-        return false;
-    if (board[r][c] != word[idx]) return false;
+    if (index == (int)word.size()) return true;
 ```
 
-If she matched all letters,
-the word was found.
-
-If she stepped outside the grid
-or onto a mismatching letter,
-the path ended.
+Every character of the word has been matched.
+The word exists in the grid. Return true.
 
 ---
 
-### 🕯️ Step 2 — Mark the Rune as Visited
+### 🛑 Invalid Cell -- Out of Bounds, Wrong Character, or Visited
+
+```cpp
+    if (r < 0 || r >= rows || c < 0 || c >= cols) return false;
+    if (board[r][c] != word[index]) return false;
+```
+
+Out of bounds → can't match. Wrong character → can't match.
+
+The visited check is handled by temporarily changing the cell (see below).
+
+---
+
+### 🔒 Mark as Visited (Temporarily)
 
 ```cpp
     char temp = board[r][c];
     board[r][c] = '#';
 ```
 
-She marked the rune with a symbol —
-`'#'` — to show she had stepped here.
-No revisiting in the same path.
+Replace the cell with a special character `'#'`.
+This prevents revisiting this cell in the current path.
+
+> _"The cell is claimed for this path.
+> No one else may use it until we release it."_
 
 ---
 
-### 🌬️ Step 3 — Explore All Directions
+### 🧭 Try All 4 Neighbors
 
 ```cpp
-    bool found = dfs(board, r+1, c, word, idx+1) ||
-                 dfs(board, r-1, c, word, idx+1) ||
-                 dfs(board, r, c+1, word, idx+1) ||
-                 dfs(board, r, c-1, word, idx+1);
+    bool found = dfs(board, word, r - 1, c, index + 1)
+              || dfs(board, word, r + 1, c, index + 1)
+              || dfs(board, word, r, c - 1, index + 1)
+              || dfs(board, word, r, c + 1, index + 1);
 ```
 
-Like a whisper moving through the wind,
-she explored four directions:
+Try up, down, left, right. Match the NEXT character (`index + 1`).
 
--   downward
--   upward
--   rightward
--   leftward
-
-hoping the next letter lay ahead.
+Short-circuit `||` -- if any direction finds the word, stop immediately.
 
 ---
 
-### 🌀 Step 4 — Backtrack
-
-_restore the rune_
+### 🔓 Backtrack -- Restore the Cell
 
 ```cpp
     board[r][c] = temp;
@@ -125,34 +163,47 @@ _restore the rune_
 }
 ```
 
-Whether success or failure,
-the Oracle restored the rune
-so other paths could use it.
+**Restore the original character.**
+This cell is now available for other paths.
 
-Such is the sacred discipline of backtracking.
+This is the BACKTRACKING step -- the key difference from flood fill.
+In flood fill, cells stay permanently marked.
+Here, we unmark because the same cell might be needed elsewhere.
+
+> _"The cell is released.
+> The path didn't work (or it did and we're unwinding).
+> Either way, the cell returns to its original state
+> for future explorers."_
 
 ---
 
-## 🔮 The Invocation of the Word Hunt
+## 🗺️ The Main Function
 
 ```cpp
 bool exist(vector<vector<char>>& board, string word) {
-    for (int r = 0; r < board.size(); r++) {
-        for (int c = 0; c < board[0].size(); c++) {
-            if (dfs(board, r, c, word, 0))
-                return true;
+    int rows = board.size();
+    int cols = board[0].size();
+
+    for (int r = 0; r < rows; r++) {
+        for (int c = 0; c < cols; c++) {
+            if (board[r][c] == word[0]) {
+                if (dfs(board, word, r, c, 0)) {
+                    return true;
+                }
+            }
         }
     }
     return false;
 }
 ```
 
-The Oracle began her search from **every cell**.
-Any one of them might hold the first rune of destiny.
+Try starting the DFS from every cell that matches the first character.
+If any starting point finds the word → return true.
+If none do → return false.
 
 ---
 
-### 🎺 The Trial of the Gridlands
+### 🎺 The Trial of the Hidden Word
 
 ```cpp
 int main() {
@@ -162,36 +213,111 @@ int main() {
         {'A','D','E','E'}
     };
 
-    cout << (exist(board, "ABCCED") ? "true" : "false") << endl; // true
-    cout << (exist(board, "SEE") ? "true" : "false") << endl;    // true
-    cout << (exist(board, "ABCB") ? "true" : "false") << endl;   // false
+    cout << exist(board, "ABCCED") << endl; // expected: 1 (true)
+    cout << exist(board, "SEE") << endl;    // expected: 1 (true)
+    cout << exist(board, "ABCB") << endl;   // expected: 0 (false)
 
     return 0;
 }
 ```
 
-The Oracle walked the board,
-and the runes whispered truth:
+---
 
--   “ABCCED” was found.
--   “SEE” was found.
--   “ABCB” was impossible,
-    for it would require revisiting a cell — a forbidden act.
+**Trace for word = "ABCCED":**
+
+```
+Board:
+  A B C E
+  S F C S
+  A D E E
+
+Start at (0,0) = 'A' = word[0]. ✓
+  (0,0)='A' → mark '#'. Try neighbors for 'B' (word[1]).
+    (0,1)='B' ✓ → mark '#'. Try neighbors for 'C' (word[2]).
+      (0,2)='C' ✓ → mark '#'. Try neighbors for 'C' (word[3]).
+        (1,2)='C' ✓ → mark '#'. Try neighbors for 'E' (word[4]).
+          (2,2)='E' ✓ → mark '#'. Try neighbors for 'D' (word[5]).
+            (2,1)='D' ✓ → mark '#'. index+1 = 6 == word.size() → TRUE! ✓
+```
+
+**Path: (0,0)A → (0,1)B → (0,2)C → (1,2)C → (2,2)E → (2,1)D** ✓
 
 ---
 
-### 🧠 Memory of the Rune Hunt
+**Trace for word = "ABCB":**
 
--   Explore every cell as a possible starting point.
--   DFS to follow each letter step by step.
--   Mark visited cells to avoid revisiting.
--   Backtrack after every attempt.
--   **Paths may twist**, but cannot reuse the same cell.
--   **Time:** O(N · M · 4^L), where L is word length.
--   **Space:** O(L) recursion depth.
+```
+Start at (0,0)='A'. Match 'A' ✓.
+  (0,1)='B'. Match 'B' ✓.
+    (0,2)='C'. Match 'C' ✓.
+      Need 'B' next. Neighbors: (0,3)='E' ✗, (1,2)='C' ✗, (0,1)='#' (visited!) ✗.
+      ALL FAIL. Backtrack.
+    Restore (0,2). Try other neighbors of (0,1) for 'C'...
+    (1,1)='F' ✗. No more.
+  Restore (0,1). No more neighbors of (0,0) for 'B'...
+No valid path from (0,0).
+
+No other starting cell matches 'A' that leads to "ABCB".
+```
+
+**Answer: false** ✓
+
+The word "ABCB" requires revisiting (0,1) for the second 'B',
+but it's already used in the path. Not allowed.
+
+---
+
+## 🔍 Why Backtrack (Unmark) and Not Permanent Mark?
+
+| Flood Fill / Number of Islands    | Word Search                       |
+| --------------------------------- | --------------------------------- |
+| Mark permanently (sink to 0)      | Mark temporarily, then restore    |
+| Each cell processed once globally | Same cell may be in different paths|
+| No backtracking                   | Backtracking required             |
+| Goal: visit all connected cells   | Goal: find ONE specific path      |
+
+In Word Search, a cell that's part of a failed path
+must be available for other attempts.
+Permanent marking would incorrectly block valid paths.
+
+---
+
+## 🔍 Optimization -- Early Termination
+
+The `||` short-circuit already helps:
+```cpp
+bool found = dfs(...) || dfs(...) || dfs(...) || dfs(...);
+```
+If the first direction finds the word, the other three are never tried.
+
+Additional optimization: check if the board even contains
+all characters of the word (with correct frequencies) before starting DFS.
+
+---
+
+### 🧠 Memory of the Hidden Word Law
+
+-   **For each cell matching word[0]:** start DFS
+-   **DFS checks:** bounds, character match, not visited
+-   **Mark visited:** `board[r][c] = '#'` (temporary)
+-   **Try 4 neighbors** with `index + 1` (next character)
+-   **Backtrack:** restore `board[r][c] = temp` after exploring
+-   **Base case:** `index == word.size()` → word found, return true
+-   **Short-circuit `||`:** stop as soon as any direction succeeds
+-   **Key difference from flood fill:** BACKTRACK (unmark), don't permanently mark
+-   **Time:** O(m × n × 4^L)
+-   **Space:** O(L) -- recursion depth = word length
+-   **Edge cases:**
+    -   Word longer than grid cells → false
+    -   Single character word → just check if it exists
+    -   Word requires same cell twice → false (not allowed)
 
 Thus is remembered the saga of **Word Search**,
-where the Oracle wanders the woven grid,
-following letters like ancient footsteps,
-until the hidden word reveals its destiny —
-or fades back into silence. 🔍✨
+where the Oracle hunted for a hidden word in the grid --
+starting from every cell matching the first letter,
+DFS-ing through adjacent cells character by character,
+marking each cell as claimed for the current path --
+and when a path failed, releasing the cell
+so other paths could try --
+until the word was found
+or every possibility was exhausted. 🔤🗺️✨
