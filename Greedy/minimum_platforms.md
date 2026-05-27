@@ -299,6 +299,79 @@ Minimum Platforms and Meeting Rooms II are the SAME problem.
 
 ---
 
+## 🔄 Alternative -- Event List (Array of Pairs)
+
+Instead of two separate sorted arrays with two pointers,
+merge all events into a single sorted list of `{time, type}` pairs.
+
+```cpp
+int findPlatform(vector<int>& arr, vector<int>& dep, int n) {
+    vector<pair<int, char>> events;
+
+    for (int i = 0; i < n; i++) {
+        events.push_back({arr[i], 'A'});
+        events.push_back({dep[i], 'D'});
+    }
+```
+
+Create one event for each arrival (`'A'`) and each departure (`'D'`).
+
+---
+
+```cpp
+    sort(events.begin(), events.end(), [](auto& a, auto& b) {
+        if (a.first == b.first) return a.second > b.second;
+        return a.first < b.first;
+    });
+```
+
+Sort by time. If same time → process departures (`'D'`) before arrivals (`'A'`).
+
+Why departures first on tie? If a train departs at 1000 and another arrives at 1000,
+the departing train frees a platform BEFORE the arriving one needs it.
+(Depends on problem definition -- some problems want arrivals first.)
+
+---
+
+```cpp
+    int count = 0;
+    int maxPlatforms = 0;
+
+    for (auto& [time, type] : events) {
+        if (type == 'A') {
+            count++;
+        } else {
+            count--;
+        }
+        maxPlatforms = max(maxPlatforms, count);
+    }
+    return maxPlatforms;
+}
+```
+
+Walk the sorted events:
+-   Arrival → `count++` (one more platform needed).
+-   Departure → `count--` (one platform freed).
+-   Track the peak count.
+
+> _"Merge all arrivals and departures into one timeline.
+> Walk through time. Every arrival adds a train.
+> Every departure removes one.
+> The peak is the answer."_
+
+```
+Time:  O(n log n) -- sorting 2n events
+Space: O(n) -- the events array
+```
+
+**Comparison:**
+-   Two-pointer (sort separately): O(n log n) time, O(1) extra space.
+-   Event list (this): O(n log n) time, O(n) extra space.
+-   Same result. Two-pointer is more space-efficient.
+    Event list is more intuitive and generalizes to more complex scenarios.
+
+---
+
 ### 🧠 Memory of the Busiest Moment Law
 
 -   **Sort arrivals and departures SEPARATELY** (ascending)

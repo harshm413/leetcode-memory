@@ -312,6 +312,148 @@ Same result, slightly less efficient but more intuitive.
 
 ---
 
+## 🔄 Alternative -- Min-Heap Approach (One Group at a Time)
+
+Instead of processing `count` groups at once,
+use a **min-heap** to always get the smallest available card
+and form ONE group at a time.
+
+```cpp
+bool isNStraightHand(vector<int>& hand, int groupSize) {
+    if (hand.size() % groupSize != 0) return false;
+
+    unordered_map<int, int> freq;
+    for (int h : hand) {
+        freq[h]++;
+    }
+```
+
+Build frequency map (unordered — we'll use the heap for ordering).
+
+---
+
+```cpp
+    priority_queue<int, vector<int>, greater<int>> minHeap;
+    for (auto& ele : freq) {
+        minHeap.push(ele.first);
+    }
+```
+
+Push all UNIQUE card values into a min-heap.
+The heap always gives us the smallest available card.
+
+---
+
+```cpp
+    while (!minHeap.empty()) {
+        int minVal = minHeap.top();
+```
+
+The smallest card in the heap. This MUST start a group
+(nothing smaller exists to precede it).
+
+---
+
+```cpp
+        for (int i = minVal; i < minVal + groupSize; ++i) {
+            if (freq.count(i) == 0 || freq[i] == 0) {
+                return false;
+            }
+            --freq[i];
+```
+
+Try to form one group: `[minVal, minVal+1, ..., minVal+groupSize-1]`.
+For each value in the sequence:
+-   If it doesn't exist or has 0 count → impossible. Return false.
+-   Otherwise → use one copy (decrement frequency).
+
+---
+
+```cpp
+            if (freq[i] == 0) minHeap.pop();
+        }
+    }
+    return true;
+}
+```
+
+**Critical detail:** `if (freq[i] == 0) minHeap.pop()`.
+
+When a card's frequency drops to 0, remove it from the heap.
+This ensures the next iteration's `minHeap.top()` gives
+the next smallest card that still has copies available.
+
+**Why this only works when `i == minVal` for the pop?**
+
+Actually this code has a subtle assumption: the values being
+decremented in the inner loop are consecutive starting from `minHeap.top()`.
+The pop only happens correctly when `freq[i] == 0` AND `i` is currently
+the top of the heap. Since we process `minVal, minVal+1, ...` in order,
+and `minVal` IS the heap top, the first pop removes `minVal`.
+Subsequent pops (for `minVal+1`, etc.) work because after removing `minVal`,
+`minVal+1` becomes the new top (if its freq is also 0).
+
+> _"The heap ensures we always start from the smallest.
+> The inner loop builds one group at a time.
+> When a card is exhausted, it leaves the heap.
+> The next smallest rises to the top."_
+
+---
+
+### How the Two Approaches Compare
+
+| Ordered Map Approach (saga above)  | Min-Heap Approach (this)          |
+| ---------------------------------- | --------------------------------- |
+| `map<int,int>` (sorted keys)      | `unordered_map` + `min-heap`      |
+| Process `count` groups at once     | Process ONE group at a time       |
+| `freq[card+i] -= groups`          | `freq[i]--` one at a time         |
+| Simpler logic, fewer iterations    | More iterations but intuitive     |
+| O(n log n) -- map operations       | O(n log n) -- heap operations     |
+
+**Both are correct. Both are O(n log n).**
+
+The ordered map approach is more efficient in practice
+(fewer iterations — handles all copies of the smallest card at once).
+The min-heap approach is more intuitive
+(form one group at a time, like physically picking cards).
+
+**For interviews:** either works. The ordered map version is cleaner to code.
+The min-heap version is easier to explain verbally.
+
+---
+
+### Why the Ordered Map Approach Works (Recap)
+
+In the saga's main approach, we use `map<int, int>` (ordered):
+
+```cpp
+for (auto& [card, count] : freq) {
+    if (count == 0) continue;
+    int groups = count;
+    for (int i = 0; i < groupSize; i++) {
+        if (freq[card + i] < groups) return false;
+        freq[card + i] -= groups;
+    }
+}
+```
+
+**Why process `count` groups at once?**
+
+If card `x` has count 3, ALL 3 copies must start a group
+(nothing smaller exists — `x` is the smallest available).
+So we need 3 copies of `x+1`, 3 copies of `x+2`, etc.
+
+Instead of forming 3 groups one-by-one (3 iterations of the inner loop × groupSize),
+we subtract `groups` from each value in ONE pass. Same result, fewer operations.
+
+**Why `map` (ordered) and not `unordered_map`?**
+
+The ordered map iterates keys in sorted order automatically.
+We need to process the smallest card first — the map gives us that for free.
+With `unordered_map`, we'd need a separate sorting step (or a heap).
+
+---
+
 ### 🧠 Memory of the Consecutive Groups Law
 
 -   **Quick check:** `n % groupSize != 0` → false

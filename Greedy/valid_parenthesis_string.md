@@ -324,6 +324,118 @@ If 0 is within this range at the end → some valid assignment exists.
 
 ---
 
+## 🔄 DP Approach -- Recursion + Memoization
+
+Before the greedy insight, this can be solved with recursion.
+
+`solve(i, open)` = can the string from index `i` onward be valid,
+given that there are `open` unmatched `(` so far?
+
+### Raw Recursion
+
+```cpp
+bool solve(int i, int open, string& s) {
+    if (open < 0) return false;
+    if (i == (int)s.size()) return open == 0;
+```
+
+If `open < 0` → more `)` than `(` → invalid.
+If we've reached the end → valid only if `open == 0` (all matched).
+
+---
+
+```cpp
+    if (s[i] == '(') {
+        return solve(i + 1, open + 1, s);
+    } else if (s[i] == ')') {
+        return solve(i + 1, open - 1, s);
+    } else {
+        // '*' can be '(', ')', or empty
+        return solve(i + 1, open + 1, s)    // treat as '('
+            || solve(i + 1, open - 1, s)    // treat as ')'
+            || solve(i + 1, open, s);       // treat as empty
+    }
+}
+
+bool checkValidString(string s) {
+    return solve(0, 0, s);
+}
+```
+
+For `*`: try all three options. If ANY returns true → valid.
+
+```
+Raw Recursion:
+Time:  O(3^n) -- three branches per '*'
+Space: O(n) -- recursion stack
+```
+
+---
+
+### Memoization
+
+The state is `(i, open)`. Cache it.
+
+```cpp
+bool solve(int i, int open, string& s, vector<vector<int>>& memo) {
+    if (open < 0) return false;
+    if (i == (int)s.size()) return open == 0;
+    if (memo[i][open] != -1) return memo[i][open];
+```
+
+---
+
+```cpp
+    bool result;
+    if (s[i] == '(') {
+        result = solve(i + 1, open + 1, s, memo);
+    } else if (s[i] == ')') {
+        result = solve(i + 1, open - 1, s, memo);
+    } else {
+        result = solve(i + 1, open + 1, s, memo)
+              || solve(i + 1, open - 1, s, memo)
+              || solve(i + 1, open, s, memo);
+    }
+    return memo[i][open] = result;
+}
+```
+
+---
+
+```cpp
+bool checkValidString(string s) {
+    int n = s.size();
+    vector<vector<int>> memo(n, vector<int>(n + 1, -1));
+    return solve(0, 0, s, memo);
+}
+```
+
+`memo[i][open]` = can we make the string valid from index `i` with `open` unmatched `(`?
+`open` ranges from 0 to n (at most n unmatched opens possible).
+
+```
+Memoization:
+Time:  O(n²) -- n indices × n possible open counts
+Space: O(n²) -- memo table + recursion stack
+```
+
+---
+
+### Why Greedy Is Better
+
+| Approach       | Time   | Space  |
+| -------------- | ------ | ------ |
+| Raw Recursion  | O(3ⁿ)  | O(n)   |
+| Memoization    | O(n²)  | O(n²)  |
+| **Greedy**     | **O(n)** | **O(1)** |
+
+The greedy approach collapses the entire `[0, n]` range of possible open counts
+into just two variables (`low`, `high`). Same information, no table needed.
+
+**For interviews:** mention recursion → memo → greedy as the optimization path.
+
+---
+
 ## 🔍 Why Clamp Low (Not High)
 
 `low < 0` means: "in the worst case, we'd have negative opens."
@@ -332,6 +444,72 @@ So we clamp to 0 (the real minimum).
 
 `high < 0` means: "even in the BEST case, we have negative opens."
 That's a real impossibility. No clamping -- return false immediately.
+
+---
+
+## 🔍 What Do `low` and `high` Actually Mean at Any Moment?
+
+Think of it this way: at any point in the string,
+the ACTUAL number of unmatched `(` depends on how we assign the `*`s.
+
+`low` = the FEWEST unmatched `(` we could have right now
+(if we treated every `*` seen so far as `)` or empty).
+
+`high` = the MOST unmatched `(` we could have right now
+(if we treated every `*` seen so far as `(`).
+
+The real count is SOMEWHERE in `[low, high]`.
+
+**Example: s = "(*"**
+
+| After | low | high | Meaning |
+|-------|-----|------|---------|
+| `(`   | 1   | 1    | Exactly 1 unmatched `(`. No ambiguity yet. |
+| `(*`  | 0   | 2    | If `*` = `)` → 0 unmatched. If `*` = `(` → 2 unmatched. If `*` = empty → 1 unmatched. Real count is 0, 1, or 2. |
+
+So `[low=0, high=2]` means: "depending on how we assign `*`,
+we could have 0, 1, or 2 unmatched opens right now."
+
+**Example: s = "((**"**
+
+| After  | low | high | Meaning |
+|--------|-----|------|---------|
+| `(`    | 1   | 1    | 1 open. |
+| `((`   | 2   | 2    | 2 opens. |
+| `((*`  | 1   | 3    | `*`=`)` → 1 open. `*`=empty → 2. `*`=`(` → 3. Range [1,3]. |
+| `((**` | 0   | 4    | Second `*` expands range further. Could be 0 to 4 opens. |
+
+At the end: `low = 0`. Since 0 is in the range → there EXISTS an assignment
+where all brackets match. Valid!
+
+(Assignment: both `*` = `)` → `(())` → valid.)
+
+**Example: s = ")*"**
+
+| After | low | high | Meaning |
+|-------|-----|------|---------|
+| `)`   | -1→**0** | -1 | high < 0 → **IMPOSSIBLE**. Return false. |
+
+Even if we treat the `*` as `(` later, the `)` at position 0
+has NOTHING to match with (no `(` before it). Dead immediately.
+
+**Example: s = "*()"**
+
+| After | low | high | Meaning |
+|-------|-----|------|---------|
+| `*`   | -1→**0** | 1 | `*`=`)` would give -1 (clamped to 0). `*`=`(` gives 1. Range [0,1]. |
+| `*(`  | 1   | 2    | The `(` pushes both up. Range [1,2]. |
+| `*()` | 0   | 1    | The `)` pulls both down. Range [0,1]. |
+
+End: `low = 0` → valid! (Assignment: `*` = empty → `()` → valid.)
+
+**The key mental model:**
+
+> `[low, high]` is the RANGE of possible unmatched-open-counts
+> across ALL possible assignments of the `*`s seen so far.
+> If 0 is ever in this range at the end → some assignment works → valid.
+> If high goes negative → even the best assignment fails → invalid.
+> If low goes negative → clamp it (we'd just choose `*` differently).
 
 ---
 

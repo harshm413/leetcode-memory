@@ -278,6 +278,48 @@ Stopping at `n-2` avoids this edge case cleanly.
 
 ---
 
+## 🔄 Window Approach (Left-Right Range)
+
+An equivalent way to think about the same greedy --
+maintain a **window `[l, r]`** representing the range of indices
+reachable with the current number of jumps.
+
+```cpp
+int jump(vector<int>& nums) {
+    int n = nums.size();
+    if (n == 1) return 0;
+
+    int l = 0, r = 0;
+    int maxfar = 0;
+    int jumps = 0;
+
+    for (int i = 0; i < n; ++i) {
+        maxfar = max(maxfar, i + nums[i]);
+        if (i == r) {
+            l = r + 1;
+            r = maxfar;
+            ++jumps;
+            if (r >= n - 1) return jumps;
+        }
+    }
+    return 0;
+}
+```
+
+**How it works:**
+
+-   `[l, r]` = the window of indices reachable with `jumps` jumps.
+-   As we scan indices in `[l, r]`, we find `maxfar` (farthest reachable with one more jump).
+-   When `i` hits `r` (end of current window):
+    -   The next window becomes `[r+1, maxfar]`.
+    -   `jumps++`.
+    -   If `r >= n-1` → we can reach the end. Return immediately.
+
+This is the same implicit BFS -- `[l, r]` is one BFS level,
+`[r+1, maxfar]` is the next level. Same logic, different variable names.
+
+---
+
 ## 🔍 Jump Game I vs Jump Game II
 
 | Jump Game I                       | Jump Game II                      |
@@ -292,16 +334,140 @@ Jump Game II counts HOW MANY level transitions are needed.
 
 ---
 
+## 🔄 DP Approach -- Memoization (Top-Down)
+
+Before the greedy insight, this problem can be solved with DP.
+`solve(i)` = minimum jumps to reach index `n-1` from index `i`.
+
+```cpp
+int solve(int i, vector<int>& nums, vector<int>& memo) {
+    if (i >= (int)nums.size() - 1) return 0;
+```
+
+Base case: already at or past the end → 0 jumps needed.
+
+---
+
+```cpp
+    if (memo[i] != -1) return memo[i];
+```
+
+Cache check.
+
+---
+
+```cpp
+    int minJumps = 1e9;
+    for (int jump = 1; jump <= nums[i]; jump++) {
+        int result = solve(i + jump, nums, memo);
+        minJumps = min(minJumps, 1 + result);
+    }
+```
+
+Try every possible jump length (1 to `nums[i]`).
+For each, recurse from the landing position.
+Take the minimum across all options.
+
+---
+
+```cpp
+    return memo[i] = minJumps;
+}
+```
+
+Cache and return.
+
+---
+
+```cpp
+int jump(vector<int>& nums) {
+    vector<int> memo(nums.size(), -1);
+    return solve(0, nums, memo);
+}
+```
+
+Start from index 0.
+
+```
+Time:  O(n × maxJump) -- for each index, try up to nums[i] jumps
+Space: O(n) -- memo + recursion stack
+```
+
+---
+
+## 🔄 DP Approach -- Tabulation (Bottom-Up)
+
+`dp[i]` = minimum jumps to reach index `i` from index 0.
+
+```cpp
+int jump(vector<int>& nums) {
+    int n = nums.size();
+    vector<int> dp(n, 1e9);
+    dp[0] = 0;
+```
+
+All positions start at infinity (unreachable). Source = 0 jumps.
+
+---
+
+```cpp
+    for (int i = 0; i < n; i++) {
+        for (int jump = 1; jump <= nums[i]; jump++) {
+            if (i + jump < n) {
+                dp[i + jump] = min(dp[i + jump], dp[i] + 1);
+            }
+        }
+    }
+```
+
+For each position `i`, try every reachable position `i + jump`.
+Update it if this path uses fewer jumps.
+
+---
+
+```cpp
+    return dp[n - 1];
+}
+```
+
+Answer at the last index.
+
+```
+Time:  O(n × maxJump) -- can be O(n²) worst case
+Space: O(n)
+```
+
+---
+
+## 🔍 Why Greedy Is Better Than DP
+
+| DP (memo/tab)                     | Greedy (BFS)                      |
+| --------------------------------- | --------------------------------- |
+| O(n²) worst case                  | O(n) always                       |
+| O(n) space                        | O(1) space                        |
+| Explores all jump options         | Only tracks the farthest reach    |
+| Correct but slow                  | Correct and fast                  |
+
+The greedy approach exploits the structure:
+within each "level" (jump), we only need the FARTHEST point --
+not the exact landing position. This collapses O(n²) into O(n).
+
+**For interviews:** mention DP as the brute-force/intuitive approach,
+then optimize to greedy. Shows progression of thought.
+
+---
+
 ### 🧠 Memory of the Fewest Leaps Law
 
--   **Three variables:** `jumps`, `currentEnd`, `farthest`
+-   **Greedy (optimal):** three variables, implicit BFS, O(n)
+-   **DP memo:** `solve(i)` = min jumps from i to end, try all jump lengths
+-   **DP tab:** `dp[i]` = min jumps from 0 to i, fill left to right
+-   **DP is O(n²), Greedy is O(n)** -- greedy is strictly better
 -   **At each index i:**
     -   `farthest = max(farthest, i + nums[i])` — extend next level's reach
     -   If `i == currentEnd` → must jump: `jumps++`, `currentEnd = farthest`
 -   **Iterate to n-2** (not n-1) to avoid extra jump at the end
 -   **This is implicit BFS** — `currentEnd` separates levels
--   **Greedy:** within each level, find the farthest reachable point
--   **Time:** O(n). **Space:** O(1).
 -   **Edge cases:**
     -   Single element → 0 jumps
     -   First element covers the end → 1 jump

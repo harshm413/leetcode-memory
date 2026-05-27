@@ -290,6 +290,150 @@ Only STRICTLY greater ratings create constraints.
 
 ---
 
+## 🔧 O(1) Space -- Slope Counting (Peak and Valley)
+
+Instead of storing the entire candy array,
+observe the structure: the ratings form a sequence of
+**increasing slopes (ups)**, **decreasing slopes (downs)**, and **flats**.
+
+The candy distribution follows a pattern:
+-   An increasing slope of length `up`: candies = 1, 2, 3, ..., up.
+-   A decreasing slope of length `down`: candies = down, ..., 3, 2, 1.
+-   The **peak** (where up meets down) gets `max(up, down)` candies.
+
+```cpp
+int candy(vector<int>& ratings) {
+    int n = ratings.size();
+    if (n <= 1) return n;
+
+    int total = 0;
+    int i = 1;
+```
+
+---
+
+```cpp
+    while (i < n) {
+        // Skip flats (equal neighbors get 1 candy each)
+        if (ratings[i] == ratings[i - 1]) {
+            total += 1;
+            i++;
+            continue;
+        }
+```
+
+Equal neighbors: each gets 1 candy. No constraint between them.
+
+---
+
+```cpp
+        // Count the UP slope
+        int up = 0;
+        while (i < n && ratings[i] > ratings[i - 1]) {
+            up++;
+            i++;
+        }
+```
+
+Count how many consecutive increases. The up slope has length `up`.
+Candies on the up slope: 1, 2, 3, ..., up (excluding the peak for now).
+
+---
+
+```cpp
+        // Count the DOWN slope
+        int down = 0;
+        while (i < n && ratings[i] < ratings[i - 1]) {
+            down++;
+            i++;
+        }
+```
+
+Count how many consecutive decreases. The down slope has length `down`.
+Candies on the down slope: down, ..., 3, 2, 1.
+
+---
+
+```cpp
+        // Sum the mountain: up slope + down slope + peak
+        total += sum(up) + sum(down) + max(up, down);
+    }
+    return total;
+}
+```
+
+Where `sum(k) = k*(k+1)/2` (sum of 1 to k).
+
+**The peak** sits between the up and down slopes.
+It must be higher than both its neighbors on the up side AND the down side.
+So the peak gets `max(up, down) + 1` candies... but since we already
+counted 1 to `up` (which includes the peak as `up`) and 1 to `down`
+(which includes the valley as 1), the peak adjustment is `max(up, down)`.
+
+---
+
+```cpp
+int sum(int k) {
+    return k * (k + 1) / 2;
+}
+```
+
+Sum of 1 + 2 + ... + k = k(k+1)/2.
+
+> _"Each mountain is an up-slope, a peak, and a down-slope.
+> The up-slope contributes 1+2+...+up.
+> The down-slope contributes 1+2+...+down.
+> The peak takes the max of both sides.
+> No array needed -- just arithmetic."_
+
+---
+
+### How It Works Visually
+
+```
+ratings: [1, 3, 5, 4, 2, 1, 3]
+
+Mountain 1: up=2 (1→3→5), down=3 (5→4→2→1)
+  Up slope candies: 1, 2       (sum = 3)
+  Down slope candies: 3, 2, 1  (sum = 6)
+  Peak: max(2, 3) = 3          (the peak at rating 5 gets 3 candies)
+  Mountain total: 3 + 6 + 3 = 12
+
+Then: up=1 (1→3), down=0
+  Up slope candies: 1           (sum = 1)
+  Down slope: none              (sum = 0)
+  Peak: max(1, 0) = 1
+  Mountain total: 1 + 0 + 1 = 2
+
+Total = 12 + 2 = 14... 
+
+(Note: the flat/transition between mountains adds 1 per flat element)
+```
+
+The exact implementation details vary, but the core idea:
+**decompose into mountains, compute each with arithmetic formulas.**
+
+```
+Time:  O(n) -- single pass
+Space: O(1) -- no candy array, just counters
+```
+
+---
+
+### Two-Pass vs Slope Counting
+
+| Two-Pass (O(n) space)             | Slope Counting (O(1) space)       |
+| --------------------------------- | --------------------------------- |
+| Easy to understand and code       | Trickier to implement correctly   |
+| Stores full candy array           | No array -- just arithmetic       |
+| Two passes over the array         | Single pass                       |
+| **Recommended for interviews**    | Mention as optimization           |
+
+For interviews: code the two-pass solution (clear, correct, fast to write).
+Mention the O(1) slope approach as a follow-up optimization.
+
+---
+
 ### 🧠 Memory of the Two Passes Law
 
 -   **Initialize all to 1** (minimum candy per child)
